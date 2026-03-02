@@ -13,9 +13,6 @@
         <module name="teaplanter" />
       </profile>
     </annotationProcessing>
-    <bytecodeTargetLevel>
-      <module name="teaplanter" target="17" />
-    </bytecodeTargetLevel>
   </component>
   <component name="JavacSettings">
     <option name="ADDITIONAL_OPTIONS_OVERRIDE">
