@@ -37,7 +37,7 @@ export function HarvestPage() {
     plotId: '',
     harvestDate: new Date().toISOString().split('T')[0],
     grossWeight: '',
-    tareWeight: '1.2'
+    tareWeight: '1'
   });
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -168,7 +168,7 @@ export function HarvestPage() {
         plotId: '',
         harvestDate: new Date().toISOString().split('T')[0],
         grossWeight: '',
-        tareWeight: '1.2'
+        tareWeight: '1'
       });
       fetchData();
       toast.success('Harvest record saved!');
@@ -283,7 +283,7 @@ export function HarvestPage() {
                 plotId: '',
                 harvestDate: new Date().toISOString().split('T')[0],
                 grossWeight: '',
-                tareWeight: '1.2'
+                tareWeight: '1'
               });
               setShowModal(true);
             }}

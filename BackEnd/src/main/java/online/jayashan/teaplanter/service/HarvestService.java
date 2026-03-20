@@ -102,18 +102,39 @@ public class HarvestService {
         return harvestRepository.findByPlot(plot);
     }
 
-    public Harvest updateHarvest(Long id, Harvest harvestDetails) {
+    public Harvest updateHarvest(Long id, online.jayashan.teaplanter.dto.HarvestRequestDTO dto) {
         Harvest harvest = harvestRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Harvest record not found"));
-        harvest.setGrossWeight(harvestDetails.getGrossWeight());
-        harvest.setTareWeight(harvestDetails.getTareWeight());
+
+        if (dto.getWorkerId() != null) {
+            Worker worker = workerRepository.findById(dto.getWorkerId())
+                    .orElseThrow(() -> new RuntimeException("Worker not found"));
+            harvest.setWorker(worker);
+        }
+
+        if (dto.getPlotId() != null) {
+            Plot plot = plotRepository.findByBlockId(dto.getPlotId())
+                    .orElseThrow(() -> new RuntimeException("Plot not found"));
+            harvest.setPlot(plot);
+        }
+
+        if (dto.getHarvestDate() != null) {
+            harvest.setHarvestDate(dto.getHarvestDate());
+        }
+
+        if (dto.getGrossWeight() != null) {
+            harvest.setGrossWeight(dto.getGrossWeight());
+        }
+
+        if (dto.getTareWeight() != null) {
+            harvest.setTareWeight(dto.getTareWeight());
+        }
+
         harvest.calculateNetWeight(); // Recalculate net weight
-        harvest.setHarvestDate(harvestDetails.getHarvestDate());
 
         // Recalculate pay based on new weight and current plantation rate
         online.jayashan.teaplanter.entity.Plantation plantation = harvest.getPlantation();
         if (plantation != null) {
-            // Freshly fetch plantation to get the latest rate
             plantation = plantationRepository.findById(plantation.getId()).orElse(plantation);
         }
 

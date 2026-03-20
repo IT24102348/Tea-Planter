@@ -38,8 +38,8 @@ public class HarvestController {
     }
 
     @PutMapping("/{id}")
-    public Harvest updateHarvest(@PathVariable Long id, @RequestBody Harvest harvest) {
-        return harvestService.updateHarvest(id, harvest);
+    public Harvest updateHarvest(@PathVariable Long id, @RequestBody online.jayashan.teaplanter.dto.HarvestRequestDTO harvestRequest) {
+        return harvestService.updateHarvest(id, harvestRequest);
     }
 
     @DeleteMapping("/{id}")
