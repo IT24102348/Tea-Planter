@@ -34,15 +34,40 @@ export function DeliveriesPage() {
         deliveryDate: new Date().toISOString().split('T')[0]
     });
     const [factoryFilter, setFactoryFilter] = useState('ALL');
+    
+    // Advanced Search & Sorting State
+    const [searchTerm, setSearchTerm] = useState('');
+    const [sortBy, setSortBy] = useState<'date-desc' | 'date-asc' | 'weight-desc' | 'weight-asc'>('date-desc');
+    const [startDate, setStartDate] = useState('');
+    const [endDate, setEndDate] = useState('');
+
+    const filteredDeliveries = useMemo(() => {
+        return deliveries
+            .filter(d => {
+                const matchesFactory = factoryFilter === 'ALL' || d.factory?.name === factoryFilter;
+                const matchesSearch = d.factory?.name.toLowerCase().includes(searchTerm.toLowerCase());
+                const deliveryDate = new Date(d.deliveryDate);
+                const matchesStart = !startDate || deliveryDate >= new Date(startDate);
+                const matchesEnd = !endDate || deliveryDate <= new Date(endDate);
+                return matchesFactory && matchesSearch && matchesStart && matchesEnd;
+            })
+            .sort((a, b) => {
+                if (sortBy === 'date-desc') return new Date(b.deliveryDate).getTime() - new Date(a.deliveryDate).getTime();
+                if (sortBy === 'date-asc') return new Date(a.deliveryDate).getTime() - new Date(b.deliveryDate).getTime();
+                if (sortBy === 'weight-desc') return b.weight - a.weight;
+                if (sortBy === 'weight-asc') return a.weight - b.weight;
+                return 0;
+            });
+    }, [deliveries, factoryFilter, searchTerm, sortBy, startDate, endDate]);
 
     const factoryStats = useMemo(() => {
         const stats: Record<string, number> = {};
-        deliveries.forEach(d => {
+        filteredDeliveries.forEach(d => {
             const factoryName = d.factory?.name || 'Unknown';
             stats[factoryName] = (stats[factoryName] || 0) + d.weight;
         });
         return Object.entries(stats).map(([name, weight]) => ({ name, weight }));
-    }, [deliveries]);
+    }, [filteredDeliveries]);
 
     const chartColors = ['#16a34a', '#2563eb', '#d97706', '#7c3aed', '#db2777'];
 
@@ -170,7 +195,7 @@ export function DeliveriesPage() {
                         <p className="text-sm font-semibold text-gray-600">Total Weight</p>
                     </div>
                     <p className="text-2xl font-bold text-gray-900">
-                        {deliveries.reduce((sum, d) => sum + d.weight, 0).toLocaleString()} <span className="text-sm font-normal text-gray-500">kg</span>
+                        {filteredDeliveries.reduce((sum, d) => sum + d.weight, 0).toLocaleString()} <span className="text-sm font-normal text-gray-500">kg</span>
                     </p>
                 </div>
                 {factoryStats.slice(0, 2).map((stat, idx) => (
@@ -224,20 +249,63 @@ export function DeliveriesPage() {
 
             <div className="grid grid-cols-1 gap-6">
                 <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                    <div className="p-4 border-b border-gray-200 bg-gray-50/50 flex items-center justify-between">
-                        <h3 className="font-bold text-gray-800">Delivery Records</h3>
-                        <div className="flex items-center gap-2">
-                            <Filter className="w-4 h-4 text-gray-400" />
-                            <select
-                                value={factoryFilter}
-                                onChange={(e) => setFactoryFilter(e.target.value)}
-                                className="text-xs font-semibold bg-white border border-gray-200 rounded px-2 py-1 outline-none"
-                            >
-                                <option value="ALL">All Factories</option>
-                                {factories.map(f => (
-                                    <option key={f.id} value={f.name}>{f.name}</option>
-                                ))}
-                            </select>
+                    <div className="p-4 border-b border-gray-200 bg-white flex flex-col md:flex-row gap-4">
+                        <div className="relative flex-1">
+                            <Truck className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                            <input
+                                type="text"
+                                placeholder="Search by factory name..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 outline-none"
+                            />
+                        </div>
+                        <div className="flex flex-wrap items-center gap-4">
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">From:</span>
+                                <input
+                                    type="date"
+                                    value={startDate}
+                                    onChange={(e) => setStartDate(e.target.value)}
+                                    className="px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-green-500 outline-none"
+                                />
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">To:</span>
+                                <input
+                                    type="date"
+                                    value={endDate}
+                                    onChange={(e) => setEndDate(e.target.value)}
+                                    className="px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-green-500 outline-none"
+                                />
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Sort:</span>
+                                <select
+                                    value={sortBy}
+                                    onChange={(e) => setSortBy(e.target.value as any)}
+                                    className="px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-green-500 outline-none bg-white font-medium"
+                                >
+                                    <option value="date-desc">Newest First</option>
+                                    <option value="date-asc">Oldest First</option>
+                                    <option value="weight-desc">Weight (High-Low)</option>
+                                    <option value="weight-asc">Weight (Low-High)</option>
+                                </select>
+                            </div>
+                            <div className="h-8 w-px bg-gray-200 hidden md:block"></div>
+                            {(searchTerm || factoryFilter !== 'ALL' || startDate || endDate) && (
+                                <button
+                                    onClick={() => {
+                                        setSearchTerm('');
+                                        setFactoryFilter('ALL');
+                                        setStartDate('');
+                                        setEndDate('');
+                                    }}
+                                    className="text-xs font-bold text-green-600 hover:text-green-700"
+                                >
+                                    Clear All
+                                </button>
+                            )}
                         </div>
                     </div>
                     <div className="overflow-x-auto">
@@ -251,10 +319,7 @@ export function DeliveriesPage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-200">
-                                {deliveries
-                                    .filter(d => factoryFilter === 'ALL' || d.factory?.name === factoryFilter)
-                                    .sort((a, b) => new Date(b.deliveryDate).getTime() - new Date(a.deliveryDate).getTime())
-                                    .map((d) => (
+                                {filteredDeliveries.map((d) => (
                                         <tr key={d.id} className="hover:bg-gray-50 transition-colors">
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-2 text-sm text-gray-900 font-medium">
