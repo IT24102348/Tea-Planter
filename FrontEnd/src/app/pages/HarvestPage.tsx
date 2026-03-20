@@ -1,8 +1,10 @@
-import { useState, useEffect, useMemo } from 'react';
-import { Plus, Scale, Calendar, TrendingUp, Loader2 } from 'lucide-react';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { Plus, Scale, Calendar, TrendingUp, Loader2, QrCode, X } from 'lucide-react';
 import { useUser, useAuth } from '@clerk/clerk-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { api } from '@/lib/api';
+import { Html5Qrcode } from 'html5-qrcode';
+import { toast } from 'sonner';
 
 interface HarvestRecord {
   id: number;
@@ -35,8 +37,14 @@ export function HarvestPage() {
     plotId: '',
     harvestDate: new Date().toISOString().split('T')[0],
     grossWeight: '',
-    tareWeight: ''
+    tareWeight: '1.2'
   });
+
+  const [showScanner, setShowScanner] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const scannerRef = useRef<Html5Qrcode | null>(null);
+  const isProcessingScan = useRef(false);
+  const grossWeightRef = useRef<HTMLInputElement>(null);
 
   const fetchData = async () => {
     setLoading(true);
@@ -70,10 +78,66 @@ export function HarvestPage() {
     fetchData();
   }, [selectedMonth]);
 
+  const startScanner = async () => {
+    if (!window.isSecureContext && window.location.hostname !== 'localhost') {
+      toast.error("Camera access requires a secure (HTTPS) connection or localhost.");
+      return;
+    }
+
+    setShowScanner(true);
+    setCameraError(null);
+    isProcessingScan.current = false;
+
+    setTimeout(async () => {
+      try {
+        const scanner = new Html5Qrcode("qr-reader");
+        scannerRef.current = scanner;
+        const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+        await scanner.start({ facingMode: "environment" }, config, onScanSuccess, () => { });
+      } catch (err: any) {
+        setCameraError(err.message || "Could not access camera.");
+      }
+    }, 300);
+  };
+
+  const stopScanner = async () => {
+    if (scannerRef.current) {
+      if (scannerRef.current.isScanning) {
+        await scannerRef.current.stop();
+      }
+      scannerRef.current = null;
+    }
+    setShowScanner(false);
+  };
+
+  const onScanSuccess = async (decodedText: string) => {
+    if (isProcessingScan.current) return;
+    isProcessingScan.current = true;
+
+    const worker = workers.find(w => w.qrCode === decodedText);
+
+    if (worker) {
+      toast.success(`Worker identified: ${worker.user?.name || 'Worker'}`);
+      setFormData(prev => ({
+        ...prev,
+        workerId: worker.id.toString(),
+        plotId: worker.assignedBlock || prev.plotId
+      }));
+      await stopScanner();
+      setShowModal(true);
+      setTimeout(() => {
+        grossWeightRef.current?.focus();
+      }, 500);
+    } else {
+      toast.error("Worker not found or invalid QR code.");
+      isProcessingScan.current = false;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.workerId || !formData.plotId || !formData.grossWeight || !formData.tareWeight) {
-      alert('Please fill in all fields');
+      toast.error('Please fill in all fields');
       return;
     }
 
@@ -101,12 +165,13 @@ export function HarvestPage() {
         plotId: '',
         harvestDate: new Date().toISOString().split('T')[0],
         grossWeight: '',
-        tareWeight: ''
+        tareWeight: '1.2'
       });
       fetchData();
+      toast.success('Harvest record saved!');
     } catch (error) {
       console.error('Failed to save harvest:', error);
-      alert('Failed to save harvest record.');
+      toast.error('Failed to save harvest record.');
     } finally {
       setIsSubmitting(false);
     }
@@ -130,9 +195,10 @@ export function HarvestPage() {
       const token = await getToken();
       await api.deleteHarvest(id, token || undefined);
       fetchData();
+      toast.success('Record deleted');
     } catch (error) {
       console.error('Failed to delete harvest:', error);
-      alert('Failed to delete record.');
+      toast.error('Failed to delete record.');
     }
   };
 
@@ -206,23 +272,32 @@ export function HarvestPage() {
             </select>
           </div>
         </div>
-        <button
-          onClick={() => {
-            setEditingRecord(null);
-            setFormData({
-              workerId: '',
-              plotId: '',
-              harvestDate: new Date().toISOString().split('T')[0],
-              grossWeight: '',
-              tareWeight: ''
-            });
-            setShowModal(true);
-          }}
-          className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium"
-        >
-          <Plus className="w-5 h-5" />
-          Record Harvest
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={startScanner}
+            className="flex items-center gap-2 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium transition-colors"
+          >
+            <QrCode className="w-5 h-5" />
+            Scan & Record
+          </button>
+          <button
+            onClick={() => {
+              setEditingRecord(null);
+              setFormData({
+                workerId: '',
+                plotId: '',
+                harvestDate: new Date().toISOString().split('T')[0],
+                grossWeight: '',
+                tareWeight: '1.2'
+              });
+              setShowModal(true);
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium"
+          >
+            <Plus className="w-5 h-5" />
+            Record Harvest
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -232,15 +307,11 @@ export function HarvestPage() {
         </div>
         <div className="bg-white rounded-lg border border-gray-200 p-4">
           <p className="text-sm text-gray-600 mb-1">Weekly Total</p>
-          <p className="text-2xl font-bold text-gray-900">
-            {weeklyTotal.toFixed(1)} kg
-          </p>
+          <p className="text-2xl font-bold text-gray-900">{weeklyTotal.toFixed(1)} kg</p>
         </div>
         <div className="bg-white rounded-lg border border-gray-200 p-4">
           <p className="text-sm text-gray-600 mb-1">Total Records</p>
-          <p className="text-2xl font-bold text-blue-600">
-            {harvests.length}
-          </p>
+          <p className="text-2xl font-bold text-blue-600">{harvests.length}</p>
         </div>
         <div className="bg-white rounded-lg border border-gray-200 p-4">
           <p className="text-sm text-gray-600 mb-1">Average Net Weight</p>
@@ -278,7 +349,7 @@ export function HarvestPage() {
                 <th className="text-left py-3 px-4 text-sm font-semibold text-gray-900">Block</th>
                 <th className="text-left py-3 px-4 text-sm font-semibold text-gray-900">Weight (kg)</th>
                 <th className="text-left py-3 px-4 text-sm font-semibold text-gray-900">Details</th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-gray-900">Status</th>
+                <th className="text-left py-3 px-4 text-sm font-semibold text-gray-900">Action</th>
                 <th className="text-left py-3 px-4 text-sm font-semibold text-gray-900">Payout</th>
               </tr>
             </thead>
@@ -295,20 +366,10 @@ export function HarvestPage() {
                     <td className="py-3 px-4">
                       <span className="text-xs text-gray-400">G: {harvest.grossWeight} | T: {harvest.tareWeight}</span>
                     </td>
-                    <td className="py-3 px-4">
+                    <td className="py-3 px-4 text-sm">
                       <div className="flex gap-2">
-                        <button
-                          onClick={() => handleEdit(harvest)}
-                          className="text-blue-600 hover:text-blue-700 text-sm font-medium"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleDelete(harvest.id)}
-                          className="text-red-600 hover:text-red-700 text-sm font-medium ml-2"
-                        >
-                          Delete
-                        </button>
+                        <button onClick={() => handleEdit(harvest)} className="text-blue-600 hover:text-blue-700">Edit</button>
+                        <button onClick={() => handleDelete(harvest.id)} className="text-red-600 hover:text-red-700">Delete</button>
                       </div>
                     </td>
                     <td className="py-3 px-4 text-sm font-bold text-green-700">
@@ -318,131 +379,110 @@ export function HarvestPage() {
                 ))}
               {harvests.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-gray-500 text-sm">
-                    No harvest records found
-                  </td>
+                  <td colSpan={7} className="py-8 text-center text-gray-500 text-sm">No harvest records found</td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
       </div>
-      {/* Record Harvest Modal */}
-      {
-        showModal && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
-            <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
-              <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-green-50">
-                <h2 className="text-xl font-bold text-green-900">
-                  {editingRecord ? 'Edit Harvest Record' : 'Record New Harvest'}
-                </h2>
-                <button
-                  onClick={() => setShowModal(false)}
-                  className="text-gray-400 hover:text-gray-600 transition-colors"
-                  disabled={isSubmitting}
+
+      {showModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-green-50">
+              <h2 className="text-xl font-bold text-green-900">{editingRecord ? 'Edit Record' : 'Record Harvest'}</h2>
+              <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600"><X className="w-6 h-6" /></button>
+            </div>
+            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Worker *</label>
+                <select
+                  required
+                  value={formData.workerId}
+                  onChange={(e) => setFormData({ ...formData, workerId: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
                 >
-                  <Plus className="w-6 h-6 rotate-45" />
-                </button>
+                  <option value="">Select Worker</option>
+                  {workers.map(w => <option key={w.id} value={w.id}>{w.user?.name || 'Unnamed Worker'}</option>)}
+                </select>
               </div>
-
-              <form onSubmit={handleSubmit} className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Plot / Block *</label>
+                <select
+                  required
+                  value={formData.plotId}
+                  onChange={(e) => setFormData({ ...formData, plotId: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
+                >
+                  <option value="">Select Block</option>
+                  {plots.map(p => <option key={p.id} value={p.blockId}>{p.blockId}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Date *</label>
+                <input
+                  required
+                  type="date"
+                  value={formData.harvestDate}
+                  onChange={(e) => setFormData({ ...formData, harvestDate: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">Worker *</label>
-                  <select
-                    required
-                    value={formData.workerId}
-                    onChange={(e) => setFormData({ ...formData, workerId: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
-                  >
-                    <option value="">Select Worker</option>
-                    {workers.map(w => (
-                      <option key={w.id} value={w.id}>{w.user?.name || 'Unnamed Worker'}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">Plot / Block *</label>
-                  <select
-                    required
-                    value={formData.plotId}
-                    onChange={(e) => setFormData({ ...formData, plotId: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
-                  >
-                    <option value="">Select Block</option>
-                    {plots.map(p => (
-                      <option key={p.id} value={p.blockId}>{p.blockId}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">Date *</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Gross (kg) *</label>
                   <input
+                    ref={grossWeightRef}
                     required
-                    type="date"
-                    value={formData.harvestDate}
-                    onChange={(e) => setFormData({ ...formData, harvestDate: e.target.value })}
+                    type="number"
+                    step="0.01"
+                    value={formData.grossWeight}
+                    onChange={(e) => setFormData({ ...formData, grossWeight: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
                   />
                 </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1">Gross Weight (kg) *</label>
-                    <input
-                      required
-                      type="number"
-                      step="0.01"
-                      placeholder="e.g. 25.5"
-                      value={formData.grossWeight}
-                      onChange={(e) => setFormData({ ...formData, grossWeight: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1">Tare Weight (kg) *</label>
-                    <input
-                      required
-                      type="number"
-                      step="0.01"
-                      placeholder="e.g. 1.2"
-                      value={formData.tareWeight}
-                      onChange={(e) => setFormData({ ...formData, tareWeight: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
-                    />
-                  </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Tare (kg) *</label>
+                  <input
+                    required
+                    type="number"
+                    step="0.01"
+                    value={formData.tareWeight}
+                    onChange={(e) => setFormData({ ...formData, tareWeight: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
+                  />
                 </div>
+              </div>
+              <div className="flex gap-3 pt-4 border-t border-gray-100">
+                <button type="button" onClick={() => setShowModal(false)} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg">Cancel</button>
+                <button type="submit" disabled={isSubmitting} className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg font-medium">
+                  {isSubmitting ? 'Saving...' : (editingRecord ? 'Update' : 'Save')}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
-                <div className="flex gap-3 pt-4 border-t border-gray-100">
-                  <button
-                    type="button"
-                    onClick={() => setShowModal(false)}
-                    disabled={isSubmitting}
-                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Saving...
-                      </>
-                    ) : (
-                      editingRecord ? 'Update Record' : 'Record Harvest'
-                    )}
-                  </button>
-                </div>
-              </form>
+      {showScanner && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[60] backdrop-blur-md">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in duration-300">
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-orange-50">
+              <h2 className="text-xl font-bold text-orange-900 flex items-center gap-2"><QrCode className="w-6 h-6" />Scan Worker QR</h2>
+              <button onClick={stopScanner} className="text-gray-400 hover:text-gray-600 p-1"><X className="w-6 h-6" /></button>
+            </div>
+            <div className="p-6 text-center">
+              <div id="qr-reader" className="w-full rounded-xl overflow-hidden border-2 border-dashed border-orange-200 bg-gray-50 aspect-square mb-4"></div>
+              <p className="text-sm text-gray-500">Scan worker QR to quickly record their harvest</p>
+              {cameraError && <div className="mt-4 p-3 bg-red-50 text-red-600 text-xs rounded-lg">{cameraError}</div>}
+            </div>
+            <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-center">
+              <button onClick={stopScanner} className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg">Cancel</button>
             </div>
           </div>
-        )
-      }
-    </div >
+        </div>
+      )}
+    </div>
   );
 }
