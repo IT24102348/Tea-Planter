@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useUser, useAuth } from '@clerk/clerk-react';
+import { useNavigate } from 'react-router-dom';
 import { StatCard } from '@/app/components/StatCard';
 import {
     MapPin,
@@ -11,6 +12,8 @@ import {
     Activity,
     DollarSign,
     Loader2,
+    Calendar,
+    FileText,
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { api } from '@/lib/api';
@@ -18,6 +21,7 @@ import { api } from '@/lib/api';
 export function OwnerDashboard() {
     const { user } = useUser();
     const { getToken } = useAuth();
+    const navigate = useNavigate();
     const plantationId = user?.publicMetadata?.plantationId as string | undefined;
 
     const [stats, setStats] = useState({
@@ -229,16 +233,17 @@ export function OwnerDashboard() {
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     {[
-                        { label: 'Assign Task', icon: Users, color: 'bg-blue-500' },
-                        { label: 'Record Harvest', icon: Scale, color: 'bg-green-500' },
-                        { label: 'Check Inventory', icon: Package, color: 'bg-orange-500' },
-                        { label: 'View Reports', icon: TrendingUp, color: 'bg-purple-500' },
+                        { label: 'Mark Attendance', icon: Calendar, color: 'bg-blue-600', to: '/attendance' },
+                        { label: 'Record Harvest', icon: Scale, color: 'bg-green-600', to: '/harvest' },
+                        { label: 'Manage Tasks', icon: FileText, color: 'bg-orange-600', to: '/tasks' },
+                        { label: 'Financials', icon: DollarSign, color: 'bg-purple-600', to: '/financial' },
                     ].map((action, i) => (
                         <button
                             key={i}
-                            className={`${action.color} hover:opacity-90 text-white p-4 rounded-lg transition-opacity flex flex-col items-center justify-center gap-2`}
+                            onClick={() => navigate(action.to)}
+                            className={`${action.color} hover:opacity-90 text-white p-4 rounded-lg transition-all shadow-sm flex flex-col items-center justify-center gap-2 group`}
                         >
-                            <action.icon className="w-6 h-6" />
+                            <action.icon className="w-6 h-6 group-hover:scale-110 transition-transform" />
                             <span className="text-sm font-medium">{action.label}</span>
                         </button>
                     ))}
