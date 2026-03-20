@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Plus, Search, Users, Mail, Phone, Calendar, Loader2, QrCode, Download } from 'lucide-react';
 import { useUser, useAuth } from "@clerk/clerk-react";
 import { api } from '@/lib/api';
@@ -45,6 +45,11 @@ export function WorkforcePage() {
     joinDate: new Date().toISOString().split('T')[0],
     workerPin: ''
   });
+
+  const [filterStatus, setFilterStatus] = useState<string>('ALL');
+  const [filterRole, setFilterRole] = useState<string>('ALL');
+  const [filterBlock, setFilterBlock] = useState<string>('ALL');
+  const [sortBy, setSortBy] = useState<string>('name');
 
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [selectedWorkerForTask, setSelectedWorkerForTask] = useState<Worker | null>(null);
@@ -277,10 +282,36 @@ export function WorkforcePage() {
     }
   };
 
-  const filteredWorkers = workers.filter((worker) =>
-    (worker.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (worker.roles || '').toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredWorkers = useMemo(() => {
+    let result = workers.filter((worker) => {
+      const searchStr = searchTerm.toLowerCase();
+      const matchesSearch =
+        (worker.user?.name || '').toLowerCase().includes(searchStr) ||
+        (worker.user?.email || '').toLowerCase().includes(searchStr) ||
+        (worker.roles || '').toLowerCase().includes(searchStr) ||
+        (worker.assignedBlock || '').toLowerCase().includes(searchStr);
+
+      const matchesStatus = filterStatus === 'ALL' || worker.status === filterStatus;
+      const matchesRole = filterRole === 'ALL' || (worker.roles || '').includes(filterRole);
+      const matchesBlock = filterBlock === 'ALL' || worker.assignedBlock === filterBlock;
+
+      return matchesSearch && matchesStatus && matchesRole && matchesBlock;
+    });
+
+    // Apply Sorting
+    return [...result].sort((a, b) => {
+      if (sortBy === 'name') {
+        return (a.user?.name || '').localeCompare(b.user?.name || '');
+      }
+      if (sortBy === 'joinDate') {
+        return new Date(b.joinDate).getTime() - new Date(a.joinDate).getTime();
+      }
+      if (sortBy === 'yield') {
+        return (b.monthlyHarvest || 0) - (a.monthlyHarvest || 0);
+      }
+      return 0;
+    });
+  }, [workers, searchTerm, filterStatus, filterRole, filterBlock, sortBy]);
 
   if (loading) {
     return (
@@ -330,16 +361,62 @@ export function WorkforcePage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-lg border border-gray-200 p-4">
-        <div className="relative">
-          <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            placeholder="Search workers..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-          />
+      <div className="bg-white rounded-lg border border-gray-200 p-4 space-y-4">
+        <div className="flex flex-col md:flex-row gap-4">
+          <div className="relative flex-1">
+            <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Search by name, email, or role..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+            />
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium focus:ring-2 focus:ring-blue-500 outline-none"
+            >
+              <option value="ALL">All Statuses</option>
+              <option value="Active">Active</option>
+              <option value="On Leave">On Leave</option>
+              <option value="Inactive">Inactive</option>
+            </select>
+            <select
+              value={filterRole}
+              onChange={(e) => setFilterRole(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium focus:ring-2 focus:ring-blue-500 outline-none"
+            >
+              <option value="ALL">All Roles</option>
+              {['Harvester', 'Pruner', 'Supervisor', 'Driver', 'Maintenance', 'Security'].map(r => (
+                <option key={r} value={r}>{r}</option>
+              ))}
+            </select>
+            <select
+              value={filterBlock}
+              onChange={(e) => setFilterBlock(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium focus:ring-2 focus:ring-blue-500 outline-none"
+            >
+              <option value="ALL">All Blocks</option>
+              {Array.from(new Set(workers.map(w => w.assignedBlock).filter(Boolean))).map(b => (
+                <option key={b} value={b}>{b}</option>
+              ))}
+            </select>
+            <div className="flex items-center gap-2 border-l pl-2 ml-2 border-gray-200">
+              <span className="text-sm text-gray-500 font-medium">Sort:</span>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium focus:ring-2 focus:ring-blue-500 outline-none"
+              >
+                <option value="name">Name (A-Z)</option>
+                <option value="joinDate">Join Date (Newest)</option>
+                <option value="yield">Monthly Yield</option>
+              </select>
+            </div>
+          </div>
         </div>
       </div>
 
