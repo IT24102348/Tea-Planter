@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useUser, useAuth } from '@clerk/clerk-react';
 import { Building2, Plus, Loader2, Phone, User, Trash2, Edit2, ChevronRight, MapPin } from 'lucide-react';
 import { api } from '@/lib/api';
@@ -31,6 +31,10 @@ export function FactoriesPage() {
         lorrySupervisorName: '',
         lorrySupervisorContact: ''
     });
+    
+    // Search and Sort State
+    const [searchTerm, setSearchTerm] = useState('');
+    const [sortBy, setSortBy] = useState<'name' | 'newest' | 'oldest'>('name');
 
     const fetchData = async () => {
         setLoading(true);
@@ -48,6 +52,20 @@ export function FactoriesPage() {
     useEffect(() => {
         fetchData();
     }, []);
+
+    const filteredFactories = useMemo(() => {
+        return factories.filter(f => {
+            const searchLower = searchTerm.toLowerCase();
+            return (f.name?.toLowerCase() || '').includes(searchLower) || 
+                   (f.registerNo?.toLowerCase() || '').includes(searchLower) ||
+                   (f.lorrySupervisorName?.toLowerCase() || '').includes(searchLower);
+        }).sort((a, b) => {
+            if (sortBy === 'name') return (a.name || '').localeCompare(b.name || '');
+            if (sortBy === 'newest') return b.id - a.id;
+            if (sortBy === 'oldest') return a.id - b.id;
+            return 0;
+        });
+    }, [factories, searchTerm, sortBy]);
 
     const handleEdit = (factory: Factory) => {
         setSelectedFactory(factory);
@@ -119,7 +137,13 @@ export function FactoriesPage() {
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900">Tea Factories</h1>
-                    <p className="text-gray-600 mt-1">Manage partner factories and contact details</p>
+                    <p className="text-gray-600 mt-1">
+                        {searchTerm ? (
+                            <span>Showing <b>{filteredFactories.length}</b> of {factories.length} factories</span>
+                        ) : (
+                            'Manage partner factories and contact details'
+                        )}
+                    </p>
                 </div>
                 <button
                     onClick={() => {
@@ -140,8 +164,42 @@ export function FactoriesPage() {
                 </button>
             </div>
 
+            {/* Search and Filters */}
+            <div className="flex flex-col md:flex-row gap-4 bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                <div className="relative flex-1">
+                    <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input
+                        type="text"
+                        placeholder="Search by factory name or registration no..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                    />
+                </div>
+                <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold text-gray-600 whitespace-nowrap">Sort By:</span>
+                    <select
+                        value={sortBy}
+                        onChange={(e) => setSortBy(e.target.value as any)}
+                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white text-sm font-medium transition-all cursor-pointer"
+                    >
+                        <option value="name">Name (A-Z)</option>
+                        <option value="newest">Newest First</option>
+                        <option value="oldest">Oldest First</option>
+                    </select>
+                </div>
+                {searchTerm && (
+                    <button 
+                        onClick={() => setSearchTerm('')}
+                        className="text-sm font-semibold text-blue-600 hover:text-blue-800"
+                    >
+                        Clear Search
+                    </button>
+                )}
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {factories.map((factory) => (
+                {filteredFactories.map((factory) => (
                     <div
                         key={factory.id}
                         onClick={() => setShowDetails(factory)}
