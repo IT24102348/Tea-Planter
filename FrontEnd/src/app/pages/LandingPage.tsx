@@ -3,9 +3,11 @@ import { useClerk, useUser } from '@clerk/clerk-react';
 import { Navigate } from 'react-router-dom';
 import {
     Leaf, BarChart3, Users, Package, DollarSign, ArrowRight,
-    Search, Bell, User as UserIcon, CloudRain, Thermometer,
-    Droplets, Plus, Zap, CheckCircle2, MapPin, Globe, Shield, Sparkles
+    Search, Bell, User as UserIcon, CloudRain, Thermometer, Droplets, Plus, Zap, CheckCircle2, 
+    MapPin, Globe, Shield, Sparkles, Scan, Star, Quote, Facebook, Twitter, Instagram, Linkedin, Send, Mail, MessageSquare
 } from 'lucide-react';
+import { PublicNavbar } from '../components/PublicNavbar';
+import { PublicFooter } from '../components/PublicFooter';
 
 export function LandingPage() {
     const { openSignIn } = useClerk();
@@ -35,35 +37,7 @@ export function LandingPage() {
             {/* Main Content Container mirroring the inner rounded card of the reference */}
             <div className="max-w-[1600px] mx-auto bg-[#E8F0E9] rounded-[2.5rem] md:rounded-[4rem] min-h-[calc(100vh-4rem)] relative overflow-hidden shadow-2xl border border-white/40">
 
-                {/* Floating Pill Navigation */}
-                <div className="absolute top-8 left-1/2 -translate-x-1/2 z-50 w-[90%] md:auto">
-                    <nav className="bg-black/90 backdrop-blur-xl rounded-full px-4 py-2 flex items-center justify-between md:gap-8 shadow-2xl border border-white/10">
-                        {/* Logo Pill */}
-                        <div className="flex items-center gap-2 group cursor-pointer pr-4 md:pr-0 border-r border-white/20 md:border-0 pl-2">
-                            <div className="p-1.5 bg-[#C8FF4C] rounded-full">
-                                <Leaf className="w-4 h-4 text-black" />
-                            </div>
-                            <span className="text-white font-bold hidden sm:inline">TeaPlanter AI</span>
-                        </div>
-
-                        {/* Nav Items */}
-                        <div className="hidden lg:flex items-center gap-6">
-                            {['Features', 'Solutions', 'Estate Map', 'Pricing'].map(item => (
-                                <span key={item} className="text-white/70 text-xs font-medium hover:text-white transition-colors cursor-pointer">{item}</span>
-                            ))}
-                        </div>
-
-                        {/* Action Icons */}
-                        <div className="flex items-center gap-3 pr-2">
-                            <button onClick={handleLogin} className="hidden sm:flex items-center gap-2 text-white/70 text-xs font-bold hover:text-white mr-2">
-                                For Planters
-                            </button>
-                            <button onClick={handleLogin} className="px-6 py-2 bg-[#C8FF4C] rounded-full text-black text-xs font-bold hover:scale-105 transition-transform shadow-lg shadow-lime-500/20">
-                                Get Started
-                            </button>
-                        </div>
-                    </nav>
-                </div>
+                <PublicNavbar />
 
                 {/* Hero / Landing Page Content */}
                 <div className="relative pt-32 md:pt-48 pb-12 px-6 md:px-12 lg:px-20">
@@ -148,194 +122,185 @@ export function LandingPage() {
                             </div>
                         </div>
                     </div>
-
                 </div>
 
-                {/* SECTION: THE AI CORE (Cornerstone Features) */}
-                <div className="mt-40 mb-20 text-center relative">
-                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[500px] bg-gradient-to-b from-[#C8FF4C]/5 to-transparent -z-10 blur-3xl"></div>
-                    <div className="inline-flex items-center gap-2 px-4 py-2 bg-black text-white rounded-full text-[10px] font-bold uppercase tracking-wider mb-8 shadow-xl">
-                        <Sparkles className="w-3 h-3 text-[#C8FF4C]" />
-                        Neural Intelligence Layer
+                {/* Stunning Feature Bento Grid */}
+                <div className="px-6 md:px-12 lg:px-20 pb-32">
+                    <div className="mb-16">
+                        <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/60 backdrop-blur-md rounded-full text-xs font-bold uppercase tracking-wider mb-6 border border-white/40 shadow-sm hover:scale-105 transition-transform cursor-default">
+                            <Zap className="w-4 h-4 text-black fill-[#C8FF4C]" /> Everything You Need
+                        </div>
+                        <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-gray-900 leading-[1.1]">
+                            The complete <br /> <span className="text-gray-400">plantation OS.</span>
+                        </h2>
                     </div>
-                    <h2 className="text-4xl md:text-7xl font-bold mb-16 tracking-tight">The <span className="text-[#888888]">AI Core.</span></h2>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 text-left">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 
-                        {/* AI FEATURE 1: DISEASE DETECTION */}
-                        <div className="bg-[#111111] rounded-[4rem] p-10 relative overflow-hidden group border border-white/5">
-                            <div className="relative z-10">
-                                <div className="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center mb-10 border border-white/10 group-hover:bg-[#C8FF4C] group-hover:scale-110 transition-all duration-500">
-                                    <Search className="w-6 h-6 text-[#C8FF4C] group-hover:text-black" />
-                                </div>
-                                <h3 className="text-2xl font-bold text-white mb-4">Tea Leaf Disease <br />Detection</h3>
-                                <p className="text-white/40 text-sm leading-relaxed mb-8">
-                                    Utilizes deep **CNN (Convolutional Neural Networks)** to identify pathologies
-                                    with 98% accuracy. Early diagnosis saves 30% of average crop loss.
+                        {/* Bento Item 1: Wide AI Scanner (Span 2) */}
+                        <div className="md:col-span-2 bg-[#1A1A1A] rounded-[2.5rem] p-8 md:p-12 relative overflow-hidden group shadow-2xl">
+                            <div className="absolute top-0 right-0 w-[50%] h-full bg-gradient-to-l from-[#C8FF4C]/10 to-transparent pointer-events-none group-hover:from-[#C8FF4C]/20 transition-all duration-700"></div>
+                            <div className="relative z-10 w-full md:w-2/3">
+                                <Search className="w-10 h-10 text-[#C8FF4C] mb-8 group-hover:scale-110 transition-transform duration-500" />
+                                <h3 className="text-3xl lg:text-4xl font-bold text-white mb-4">Neural Vision Diagnosis</h3>
+                                <p className="text-gray-400 leading-relaxed text-lg">
+                                    Instantly detect leaf diseases and nutrient deficiencies with computer vision. 
+                                    Protect yields by acting on AI-powered early alerts before spreads occur.
                                 </p>
-                                <div className="flex items-center gap-3 text-[10px] font-black text-[#C8FF4C] uppercase tracking-widest bg-white/5 w-fit px-4 py-2 rounded-full border border-white/10">
-                                    Architecture: CNN
-                                </div>
                             </div>
-                            <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-[#C8FF4C]/10 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                            <div className="absolute top-12 right-12 text-white/5 text-[5rem] font-bold select-none leading-none">01</div>
+                            {/* Decorative element */}
+                            <div className="absolute -bottom-10 -right-10 w-64 h-64 bg-white/5 rounded-full border border-white/10 flex items-center justify-center backdrop-blur-md group-hover:scale-110 transition-transform duration-700">
+                                <Scan className="w-24 h-24 text-white/20" />
+                            </div>
                         </div>
 
-                        {/* AI FEATURE 2: PRICE PREDICTION */}
-                        <div className="bg-white rounded-[4rem] p-10 relative overflow-hidden group border border-black/5 shadow-sm hover:shadow-2xl transition-all duration-500">
-                            <div className="relative z-10">
-                                <div className="w-14 h-14 bg-black rounded-2xl flex items-center justify-center mb-10 transition-transform group-hover:rotate-6">
-                                    <BarChart3 className="w-6 h-6 text-[#C8FF4C]" />
-                                </div>
-                                <h3 className="text-2xl font-bold text-black mb-4">Market Price <br />Forecasting</h3>
-                                <p className="text-gray-500 text-sm leading-relaxed mb-8">
-                                    Advanced **Machine Learning Time-Series** models analyze global
-                                    demand to forecast future valuation. Timing is everything in tea sales.
-                                </p>
-                                <div className="flex items-center gap-3 text-[10px] font-black text-black/40 uppercase tracking-widest bg-black/5 w-fit px-4 py-2 rounded-full border border-black/5">
-                                    Model: ML Time-Series
-                                </div>
-                            </div>
-                            <div className="absolute top-12 right-12 text-black/5 text-[5rem] font-bold select-none leading-none">02</div>
-                        </div>
-
-                        {/* AI FEATURE 3: AGENTIC CHATBOT */}
-                        <div className="bg-[#111111] rounded-[4rem] p-10 relative overflow-hidden group border border-white/5">
-                            <div className="relative z-10">
-                                <div className="w-14 h-14 bg-[#C8FF4C] rounded-2xl flex items-center justify-center mb-10 group-hover:shadow-[0_0_30px_rgba(200,255,76,0.3)] transition-all">
-                                    <Zap className="w-6 h-6 text-black" />
-                                </div>
-                                <h3 className="text-2xl font-bold text-white mb-4">Multi-Agentic <br />Estate Assistant</h3>
-                                <p className="text-white/40 text-sm leading-relaxed mb-8">
-                                    A sophisticated **Multi-Agent RAG** system that simulates expert advice
-                                    by analyzing your unique plantation data and local climate constraints.
-                                </p>
-                                <div className="flex items-center gap-3 text-[10px] font-black text-[#C8FF4C] uppercase tracking-widest bg-white/5 w-fit px-4 py-2 rounded-full border border-white/10">
-                                    System: Multi-Agent RAG
-                                </div>
-                            </div>
-                            <div className="absolute top-12 right-12 text-white/5 text-[5rem] font-bold select-none leading-none">03</div>
-                        </div>
-
-                    </div>
-                </div>
-
-                {/* SECTION: HARVEST INTELLIGENCE (Actual Feature: Harvest weights/linking) */}
-                <div className="mt-40 bg-white rounded-[4rem] p-12 md:p-20 relative overflow-hidden shadow-sm border border-black/5">
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
-                        <div>
-                            <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#C8FF4C]/20 text-black text-[10px] font-bold uppercase tracking-widest rounded-full mb-6">
-                                <Sparkles className="w-3 h-3" /> Precision Weight System
-                            </div>
-                            <h2 className="text-4xl md:text-6xl font-bold mb-8 leading-tight">Master Every <br /><span className="text-gray-400 font-medium">Harvest Weight.</span></h2>
-                            <p className="text-gray-600 text-lg mb-10 leading-relaxed">
-                                Our integrated harvesting module logs every kilogram with precision.
-                                Link harvests directly to workers and factories, ensuring
-                                complete accountability and error-free payment calculation.
+                        {/* Bento Item 2: Square Harvest */}
+                        <div className="bg-[#C8FF4C] rounded-[2.5rem] p-8 md:p-12 relative overflow-hidden group shadow-lg hover:shadow-[#C8FF4C]/40 transition-shadow duration-500">
+                            <Leaf className="w-10 h-10 text-black mb-8 group-hover:rotate-12 transition-transform duration-500" />
+                            <h3 className="text-2xl lg:text-3xl font-bold text-black mb-4 leading-tight">Precision<br/>Yield Tracking</h3>
+                            <p className="text-black/80 font-medium">
+                                Link daily harvests directly to workers and plots—eliminating human error from payouts instantly.
                             </p>
-                            <ul className="space-y-4">
-                                {[
-                                    'Real-time weight recording per worker',
-                                    'Automatic link to factory delivery registries',
-                                    'Historical yield analysis by plantation block'
-                                ].map((item, i) => (
-                                    <li key={i} className="flex items-center gap-3 text-sm font-bold opacity-80">
-                                        <div className="w-5 h-5 rounded-full bg-[#C8FF4C] flex items-center justify-center">
-                                            <div className="w-1.5 h-1.5 bg-black rounded-full" />
-                                        </div>
-                                        {item}
-                                    </li>
-                                ))}
-                            </ul>
+                            <div className="absolute -bottom-8 -right-8 opacity-[0.15] group-hover:scale-125 transition-transform duration-700">
+                                <BarChart3 className="w-40 h-40 text-black" />
+                            </div>
                         </div>
-                        <div className="relative">
-                            <div className="bg-[#1A1A1A] rounded-[3rem] p-8 aspect-video flex flex-col justify-end shadow-2xl overflow-hidden group border border-white/5">
-                                {/* Real Data Visual Representation */}
-                                <div className="absolute inset-x-8 top-8 grid grid-cols-3 gap-4">
-                                    <div className="h-2 bg-[#C8FF4C] rounded-full w-full"></div>
-                                    <div className="h-2 bg-white/20 rounded-full w-[60%]"></div>
-                                    <div className="h-2 bg-white/20 rounded-full w-full"></div>
+
+                        {/* Bento Item 3: Square Workforce */}
+                        <div className="bg-white/60 backdrop-blur-xl border border-white/60 rounded-[2.5rem] p-8 md:p-12 group shadow-sm hover:shadow-xl transition-all duration-500">
+                            <Users className="w-10 h-10 text-blue-600 mb-8 group-hover:-translate-y-2 transition-transform duration-500" />
+                            <h3 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-4 leading-tight">Smart<br/>Workforce</h3>
+                            <p className="text-gray-600 font-medium">
+                                One-touch attendance, dynamic real-time shifts, and automated payroll tailored for massive estates.
+                            </p>
+                        </div>
+
+                        {/* Bento Item 4: Wide Inventory Analytics (Span 2) */}
+                        <div className="md:col-span-2 bg-white rounded-[2.5rem] p-8 md:p-12 relative overflow-hidden group border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-500">
+                            <div className="flex flex-col md:flex-row gap-8 items-center justify-between relative z-10">
+                                <div className="flex-1">
+                                    <Package className="w-10 h-10 text-gray-900 mb-8 group-hover:translate-x-2 transition-transform duration-500" />
+                                    <h3 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">Intelligent Inventory</h3>
+                                    <p className="text-gray-600 leading-relaxed text-lg">
+                                        Total oversight over fertilizers, equipment, and resources. 
+                                        Set automated threshold alerts so your plantation never halts production.
+                                    </p>
                                 </div>
-                                <div className="relative z-10">
-                                    <div className="flex justify-between items-center mb-6">
-                                        <span className="text-white font-bold text-2xl">Today's Intake</span>
-                                        <span className="bg-[#C8FF4C] text-black px-3 py-1 rounded-full text-[10px] font-black">SYNCED</span>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-4 rounded-2xl">
-                                            <p className="text-white/40 text-[10px] font-bold uppercase mb-1">Total Weight</p>
-                                            <p className="text-white text-xl font-black">2,840.5 KG</p>
-                                        </div>
-                                        <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-4 rounded-2xl">
-                                            <p className="text-white/40 text-[10px] font-bold uppercase mb-1">Active Workers</p>
-                                            <p className="text-white text-xl font-black">42</p>
+                                <div className="w-full md:w-1/3 flex items-center justify-center mt-6 md:mt-0">
+                                    {/* Spinner abstract animation */}
+                                    <div className="w-32 h-32 rounded-full border-8 border-gray-100 group-hover:border-[#1A1A1A] group-hover:border-t-[#C8FF4C] flex items-center justify-center transition-all duration-1000 shadow-xl relative">
+                                        <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center border border-gray-200">
+                                            <Shield className="w-6 h-6 text-gray-400 group-hover:text-green-500 transition-colors duration-500" />
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                            <div className="absolute -bottom-6 -right-6 w-32 h-32 bg-[#C8FF4C] rounded-full blur-3xl opacity-20 -z-10"></div>
+                            {/* Abstract background blobs */}
+                            <div className="absolute top-1/2 right-1/4 w-64 h-64 bg-green-50 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-1000 -translate-y-1/2 pointer-events-none"></div>
+                        </div>
+
+                    </div>
+                </div>
+
+                {/* 1. Testimonials Section */}
+                <div className="mt-32 px-6 md:px-12 lg:px-20 mb-32">
+                    <div className="text-center mb-16">
+                        <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/60 backdrop-blur-md rounded-full text-xs font-bold uppercase tracking-wider mb-6 border border-white/40 shadow-sm cursor-default hover:scale-105 transition-transform">
+                            <Quote className="w-4 h-4 text-[#C8FF4C] fill-[#C8FF4C]/50" /> Voice of the Planter
+                        </div>
+                        <h2 className="text-4xl md:text-5xl font-bold tracking-tight text-gray-900 leading-tight">
+                            Trusted by top <br /> <span className="text-gray-400">estate managers.</span>
+                        </h2>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 text-left">
+                        {/* Testimonial 1 */}
+                        <div className="bg-white rounded-[2rem] p-8 shadow-xl border border-gray-100 relative group hover:-translate-y-2 transition-transform duration-500">
+                            <div className="flex items-center gap-1 mb-6 text-[#C8FF4C]">
+                                {[...Array(5)].map((_, i) => <Star key={i} className="w-5 h-5 fill-current" />)}
+                            </div>
+                            <p className="text-gray-600 text-lg leading-relaxed mb-8 relative z-10">
+                                "TeaPlanter AI completely transformed how we handle our logistics. The disease scanner alone saved 20% of our seasonal yield."
+                            </p>
+                            <div className="flex items-center gap-4 relative z-10">
+                                <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center font-bold text-gray-400">RC</div>
+                                <div>
+                                    <h4 className="font-bold text-gray-900">Ravi Chandran</h4>
+                                    <p className="text-sm text-gray-500">Estate Manager, Nuwara Eliya</p>
+                                </div>
+                            </div>
+                            <div className="absolute top-8 right-8 text-gray-100 group-hover:text-gray-200 transition-colors duration-500">
+                                <Quote className="w-16 h-16 opacity-50" />
+                            </div>
+                        </div>
+
+                        {/* Testimonial 2 */}
+                        <div className="bg-[#1A1A1A] rounded-[2rem] p-8 shadow-2xl border border-white/5 relative group hover:-translate-y-2 transition-transform duration-500">
+                            <div className="flex items-center gap-1 mb-6 text-[#C8FF4C]">
+                                {[...Array(5)].map((_, i) => <Star key={i} className="w-5 h-5 fill-current" />)}
+                            </div>
+                            <p className="text-gray-300 text-lg leading-relaxed mb-8 relative z-10">
+                                "The intelligent inventory forecasting meant we never ran out of fertilizer during the peak season. It’s a game changer."
+                            </p>
+                            <div className="flex items-center gap-4 relative z-10">
+                                <div className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center font-bold text-white">SP</div>
+                                <div>
+                                    <h4 className="font-bold text-white">Sunil Perera</h4>
+                                    <p className="text-sm text-gray-500">Operations Lead, Kandy Estates</p>
+                                </div>
+                            </div>
+                            <div className="absolute top-8 right-8 text-white/5 group-hover:text-white/10 transition-colors duration-500">
+                                <Quote className="w-16 h-16 opacity-50" />
+                            </div>
+                        </div>
+
+                        {/* Testimonial 3 */}
+                        <div className="bg-white/60 backdrop-blur-md rounded-[2rem] p-8 shadow-md border border-white/60 relative group hover:-translate-y-2 transition-transform duration-500">
+                            <div className="flex items-center gap-1 mb-6 text-[#C8FF4C]">
+                                {[...Array(5)].map((_, i) => <Star key={i} className="w-5 h-5 fill-current" />)}
+                            </div>
+                            <p className="text-gray-600 text-lg leading-relaxed mb-8 relative z-10">
+                                "Tying daily harvest weights directly to worker payroll automatically is incredible. No more manual ledger counting."
+                            </p>
+                            <div className="flex items-center gap-4 relative z-10">
+                                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center font-bold text-green-700">AK</div>
+                                <div>
+                                    <h4 className="font-bold text-gray-900">Anura Kumara</h4>
+                                    <p className="text-sm text-gray-500">Director, Central Highlands</p>
+                                </div>
+                            </div>
+                            <div className="absolute top-8 right-8 text-green-50 group-hover:text-green-100 transition-colors duration-500">
+                                <Quote className="w-16 h-16 opacity-50" />
+                            </div>
                         </div>
                     </div>
                 </div>
 
-
-
-                {/* Features Grid Segment (Actual Features: AI Scanner, Inventory, Workforce) */}
-                <div className="mt-40 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-
-                    {/* FEATURE: AI Disease Scanner */}
-                    <div className="bg-white/40 backdrop-blur-md rounded-[3rem] p-10 border border-white/60 shadow-sm hover:shadow-xl transition-all duration-500 group">
-                        <div className="w-16 h-16 bg-black rounded-3xl flex items-center justify-center mb-8 rotate-3 group-hover:rotate-0 transition-transform">
-                            <Search className="w-8 h-8 text-[#C8FF4C]" />
+                {/* 2. Big CTA Banner */}
+                <div className="px-6 md:px-12 lg:px-20 mb-32">
+                    <div className="relative bg-[#C8FF4C] rounded-[3rem] p-12 lg:p-20 overflow-hidden shadow-2xl flex flex-col items-center text-center group border border-[#b2e83e]">
+                        <div className="absolute -top-32 -left-32 w-64 h-64 bg-white/40 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-1000 pointer-events-none"></div>
+                        <div className="absolute -bottom-32 -right-32 w-80 h-80 bg-black/5 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-1000 pointer-events-none"></div>
+                        
+                        <div className="relative z-10 max-w-3xl mx-auto">
+                            <h2 className="text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight text-black mb-8 leading-[1.05]">
+                                Ready to scale your plantation?
+                            </h2>
+                            <p className="text-xl text-black/70 mb-12 font-medium">
+                                Join dozens of modern estates leveraging AI to optimize every leaf. Start your journey with TeaPlanter AI today.
+                            </p>
+                            <button onClick={handleLogin} className="px-10 py-5 bg-black text-white rounded-full font-bold text-lg flex items-center justify-center gap-3 hover:scale-105 transition-transform shadow-2xl mx-auto">
+                                Start Your Estate Now <ArrowRight className="w-5 h-5" />
+                            </button>
                         </div>
-                        <h3 className="text-2xl font-bold mb-4">AI-Powered<br />Disease Scanner</h3>
-                        <p className="text-gray-600 leading-relaxed mb-8">Utilize computer vision to identify tea leaf diseases instantly. Protect your plantation with early detection alerts.</p>
-                        <div className="flex items-center gap-3 text-xs font-bold text-black/40 uppercase tracking-widest border-t border-black/5 pt-6">
-                            <Sparkles className="w-4 h-4" /> Neural Vision Tech
-                        </div>
-                    </div>
-
-                    {/* FEATURE: Inventory Integrity */}
-                    <div className="bg-white/40 backdrop-blur-md rounded-[3rem] p-10 border border-white/60 shadow-sm hover:shadow-xl transition-all duration-500 group">
-                        <div className="w-16 h-16 bg-[#C8FF4C] rounded-3xl flex items-center justify-center mb-8 -rotate-3 group-hover:rotate-0 transition-transform">
-                            <Package className="w-8 h-8 text-black" />
-                        </div>
-                        <h3 className="text-2xl font-bold mb-4">Inventory &<br />Stock Integrity</h3>
-                        <p className="text-gray-600 leading-relaxed mb-8">Track fertilizer consumption, tool distribution, and stock levels. Automated alerts when resources run low.</p>
-                        <div className="flex items-center gap-3 text-xs font-bold text-black/40 uppercase tracking-widest border-t border-black/5 pt-6">
-                            <BarChart3 className="w-4 h-4" /> Usage Analytics
+                        {/* Decorative floating icon */}
+                        <div className="absolute top-12 right-12 md:top-20 md:right-20 animate-[spin_10s_linear_infinite] opacity-50 hidden md:block">
+                            <Sparkles className="w-16 h-16 text-black/20" />
                         </div>
                     </div>
-
-                    {/* FEATURE: Smart Workforce & Reports */}
-                    <div className="bg-black rounded-[3rem] p-10 shadow-2xl group relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-[#C8FF4C]/10 rounded-bl-full pointer-events-none"></div>
-                        <div className="w-16 h-16 bg-white rounded-3xl flex items-center justify-center mb-8 transition-transform group-hover:scale-110">
-                            <Users className="w-8 h-8 text-black" />
-                        </div>
-                        <h3 className="text-2xl font-bold text-white mb-4">Workforce &<br />Performance</h3>
-                        <p className="text-white/60 leading-relaxed mb-8">Automated payroll calculation, attendance tracking, and downloadable PDF performance reports for every worker.</p>
-                        <div className="flex items-center gap-3 text-xs font-bold text-[#C8FF4C] uppercase tracking-widest border-t border-white/10 pt-6">
-                            <CheckCircle2 className="w-4 h-4" /> Professional PDF Reports
-                        </div>
-                    </div>
-
                 </div>
 
-
-                {/* Footer with branding alignment */}
-                <div className="mt-12 mb-8 px-4 flex flex-col md:flex-row justify-between items-center text-black/40 text-sm font-medium">
-                    <div className="flex items-center gap-2 mb-4 md:mb-0">
-                        <Leaf className="w-4 h-4" />
-                        <span>TeaPlanter AI • Modernizing Ceylon Tea Excellence</span>
-                    </div>
-                    <div className="flex gap-8">
-                        {['Terms', 'Privacy', 'Contact', 'Press'].map(item => (
-                            <a key={item} href="#" className="hover:text-black transition-colors">{item}</a>
-                        ))}
-                    </div>
-                    <p className="mt-4 md:mt-0">© 2026 Tea Planter</p>
-                </div>
+                <PublicFooter />
             </div>
         </div>
     );

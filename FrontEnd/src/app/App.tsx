@@ -24,6 +24,19 @@ import { WorkerReportsPage } from './pages/WorkerReportsPage';
 import { TasksPage } from './pages/TasksPage';
 import { SettingsPage } from './pages/SettingsPage';
 
+// Public Marketing Pages
+import { SmartWorkflowPage } from './pages/SmartWorkflowPage';
+import { LiveTelemetryPage } from './pages/LiveTelemetryPage';
+import { PricingPage } from './pages/PricingPage';
+import { ApiAccessPage } from './pages/ApiAccessPage';
+import { AboutUsPage } from './pages/AboutUsPage';
+import { CareersPage } from './pages/CareersPage';
+import { EstatePartnersPage } from './pages/EstatePartnersPage';
+import { BlogPage } from './pages/BlogPage';
+import { ContactPage } from './pages/ContactPage';
+import { SecurityPage } from './pages/SecurityPage';
+import { GuidePage } from './pages/GuidePage';
+
 interface PrivateRouteProps {
   children: React.ReactNode;
   allowedRoles?: ('owner' | 'clerk' | 'worker')[];
@@ -69,6 +82,19 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={isSignedIn ? <Navigate to={getHomeRoute()} /> : <LandingPage />} />
+
+      {/* Public Marketing Pages */}
+      <Route path="/smart-workflow" element={<SmartWorkflowPage />} />
+      <Route path="/live-telemetry" element={<LiveTelemetryPage />} />
+      <Route path="/pricing" element={<PricingPage />} />
+      <Route path="/api-access" element={<ApiAccessPage />} />
+      <Route path="/about-us" element={<AboutUsPage />} />
+      <Route path="/careers" element={<CareersPage />} />
+      <Route path="/estate-partners" element={<EstatePartnersPage />} />
+      <Route path="/blog" element={<BlogPage />} />
+      <Route path="/contact" element={<ContactPage />} />
+      <Route path="/security" element={<SecurityPage />} />
+      <Route path="/guide" element={<GuidePage />} />
 
       {/* Worker Pages - With WorkerLayout */}
       <Route
