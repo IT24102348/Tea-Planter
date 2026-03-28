@@ -14,6 +14,7 @@ import {
     Loader2,
     Calendar,
     FileText,
+    Leaf,
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { api } from '@/lib/api';
@@ -131,7 +132,7 @@ export function OwnerDashboard() {
                 <StatCard
                     title="Total Yield"
                     value={`${stats.harvest.toFixed(1)} kg`}
-                    icon={Scale}
+                    icon={Leaf}
                     color="orange"
                 />
                 <StatCard
@@ -234,7 +235,7 @@ export function OwnerDashboard() {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     {[
                         { label: 'Mark Attendance', icon: Calendar, color: 'bg-blue-600', to: '/attendance' },
-                        { label: 'Record Harvest', icon: Scale, color: 'bg-green-600', to: '/harvest' },
+                        { label: 'Record Harvest', icon: Leaf, color: 'bg-green-600', to: '/harvest' },
                         { label: 'Manage Tasks', icon: FileText, color: 'bg-orange-600', to: '/tasks' },
                         { label: 'Financials', icon: DollarSign, color: 'bg-purple-600', to: '/financial' },
                     ].map((action, i) => (

@@ -34,7 +34,7 @@ const navItems: NavItem[] = [
   { to: '/worker-dashboard', icon: LayoutDashboard, labelKey: 'dashboard', roles: ['worker'] },
   { to: '/plots', icon: MapPin, labelKey: 'plots', roles: ['owner'] },
   { to: '/workforce', icon: Users, labelKey: 'workforce', roles: ['owner'] },
-  { to: '/harvest', icon: Scale, labelKey: 'harvest', roles: ['owner', 'clerk'] },
+  { to: '/harvest', icon: Leaf, labelKey: 'harvest', roles: ['owner', 'clerk'] },
   { to: '/inventory', icon: Package, labelKey: 'inventory', roles: ['owner', 'clerk'] },
   { to: '/attendance', icon: Calendar, labelKey: 'attendance', roles: ['owner', 'clerk'] },
   { to: '/financial', icon: DollarSign, labelKey: 'financial', roles: ['owner', 'worker'] },
