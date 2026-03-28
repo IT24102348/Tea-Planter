@@ -3,7 +3,7 @@ import { Sidebar } from './Sidebar';
 
 export function DashboardLayout() {
   return (
-    <div className="h-screen flex overflow-hidden bg-gray-50">
+    <div className="h-screen flex overflow-hidden bg-background text-foreground">
       <Sidebar />
       <div className="flex-1 overflow-auto">
         <Outlet />
