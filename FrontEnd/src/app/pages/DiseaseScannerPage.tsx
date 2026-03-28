@@ -1,45 +1,102 @@
 import { useState } from 'react';
 import { Upload, Scan, AlertCircle, CheckCircle2, Camera } from 'lucide-react';
 
-interface ScanResult {
+interface Detection {
   disease: string;
   confidence: number;
-  severity: 'Low' | 'Medium' | 'High';
-  treatment: string;
-  prevention: string;
+  confidence_pct: string;
+  bbox: {
+    x1: number;
+    y1: number;
+    x2: number;
+    y2: number;
+  };
+}
+
+interface Recommendation {
+  disease: string;
+  severity: string;
+  cause: string;
+  symptoms: string;
+  treatment_steps: string[];
+  prevention: string[];
+  urgency: string;
+  sri_lanka_note: string;
+}
+
+interface PredictionResponse {
+  detections: Detection[];
+  primary_disease: string;
+  total_detections: number;
+  diseases_found: string[];
+  recommendation: Recommendation;
+  model_info: {
+    run: string;
+    map50: number;
+  };
 }
 
 export function DiseaseScannerPage() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [scanning, setScanning] = useState(false);
-  const [result, setResult] = useState<ScanResult | null>(null);
+  const [result, setResult] = useState<PredictionResponse | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [history, setHistory] = useState<any[]>([
+    { date: '2026-03-27', disease: 'Healthy Leaf', severity: 'Low', block: 'Block A' },
+    { date: '2026-03-26', disease: 'Blister Blight', severity: 'Medium', block: 'Block C' },
+    { date: '2026-03-25', disease: 'Nutrient Deficiency', severity: 'Low', block: 'Block B' },
+  ]);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setSelectedFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
         setSelectedImage(reader.result as string);
         setResult(null);
+        setError(null);
       };
       reader.readAsDataURL(file);
     }
   };
 
   const handleScan = async () => {
+    if (!selectedFile) return;
+
     setScanning(true);
-    // Simulate AI scanning
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    // Mock result
-    setResult({
-      disease: 'Blister Blight',
-      confidence: 87.5,
-      severity: 'Medium',
-      treatment: 'Apply copper-based fungicide. Remove affected leaves immediately. Ensure proper drainage in the affected area.',
-      prevention: 'Maintain proper spacing between bushes. Avoid overhead irrigation during humid conditions. Regular pruning to improve air circulation.',
-    });
-    setScanning(false);
+    setError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+
+      const response = await fetch(`${import.meta.env.VITE_ML_API_URL}/predict`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to scan image. Please ensure the analysis server is running.');
+      }
+
+      const data: PredictionResponse = await response.json();
+      setResult(data);
+      
+      // Add to history
+      setHistory(prev => [{
+        date: new Date().toISOString().split('T')[0],
+        disease: data.primary_disease,
+        severity: data.recommendation.severity,
+        block: 'Unknown Block'
+      }, ...prev]);
+    } catch (err) {
+      console.error('Scan error:', err);
+      setError(err instanceof Error ? err.message : 'An unknown error occurred');
+    } finally {
+      setScanning(false);
+    }
   };
 
   return (
@@ -83,7 +140,9 @@ export function DiseaseScannerPage() {
                 <button
                   onClick={() => {
                     setSelectedImage(null);
+                    setSelectedFile(null);
                     setResult(null);
+                    setError(null);
                   }}
                   className="absolute top-2 right-2 p-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-medium"
                 >
@@ -108,6 +167,13 @@ export function DiseaseScannerPage() {
                   </>
                 )}
               </button>
+
+              {error && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2 text-red-700 text-sm">
+                  <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                  <p>{error}</p>
+                </div>
+              )}
             </div>
           )}
 
@@ -143,17 +209,23 @@ export function DiseaseScannerPage() {
                 <div className="flex items-center justify-between mb-2">
                   <h4 className="font-semibold text-gray-900">Disease Identified</h4>
                   <span className={`text-xs px-2 py-1 rounded-full ${
-                    result.severity === 'High' ? 'bg-red-100 text-red-700' :
-                    result.severity === 'Medium' ? 'bg-orange-100 text-orange-700' :
+                    result.recommendation.severity === 'High' ? 'bg-red-100 text-red-700' :
+                    result.recommendation.severity === 'Moderate' ? 'bg-orange-100 text-orange-700' :
                     'bg-yellow-100 text-yellow-700'
                   }`}>
-                    {result.severity} Severity
+                    {result.recommendation.severity} Severity
                   </span>
                 </div>
-                <p className="text-2xl font-bold text-red-600 mb-2">{result.disease}</p>
-                <div className="flex items-center gap-2 text-sm text-gray-600">
+                <p className="text-2xl font-bold text-red-600 mb-1">{result.primary_disease}</p>
+                <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
                   <CheckCircle2 className="w-4 h-4 text-green-600" />
-                  <span>Confidence: {result.confidence}%</span>
+                  <span>Confidence: {result.detections[0]?.confidence_pct || 'N/A'}</span>
+                </div>
+                <div className="text-sm text-gray-700">
+                  <span className="font-medium">Cause:</span> {result.recommendation.cause}
+                </div>
+                <div className="text-sm text-gray-700">
+                  <span className="font-medium">Symptoms:</span> {result.recommendation.symptoms}
                 </div>
               </div>
 
@@ -163,9 +235,11 @@ export function DiseaseScannerPage() {
                   <AlertCircle className="w-5 h-5 text-green-700 flex-shrink-0 mt-0.5" />
                   <h4 className="font-semibold text-green-900">Recommended Treatment</h4>
                 </div>
-                <p className="text-sm text-green-800 leading-relaxed">
-                  {result.treatment}
-                </p>
+                <ul className="text-sm text-green-800 space-y-2 list-decimal list-inside">
+                  {result.recommendation.treatment_steps.map((step, i) => (
+                    <li key={i}>{step}</li>
+                  ))}
+                </ul>
               </div>
 
               {/* Prevention */}
@@ -174,9 +248,24 @@ export function DiseaseScannerPage() {
                   <AlertCircle className="w-5 h-5 text-blue-700 flex-shrink-0 mt-0.5" />
                   <h4 className="font-semibold text-blue-900">Prevention Measures</h4>
                 </div>
-                <p className="text-sm text-blue-800 leading-relaxed">
-                  {result.prevention}
-                </p>
+                <ul className="text-sm text-blue-800 space-y-2 list-disc list-inside">
+                  {result.recommendation.prevention.map((item, i) => (
+                    <li key={i}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Sri Lanka Note & Urgency */}
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <span className="font-medium">Urgency:</span>
+                  <span className="text-red-600 font-semibold uppercase text-xs">{result.recommendation.urgency}</span>
+                </div>
+                {result.recommendation.sri_lanka_note && (
+                  <div className="p-2 bg-yellow-50 border border-yellow-100 rounded text-xs text-yellow-800 italic">
+                    Note: {result.recommendation.sri_lanka_note}
+                  </div>
+                )}
               </div>
 
               {/* Actions */}
@@ -197,11 +286,7 @@ export function DiseaseScannerPage() {
       <div className="bg-white rounded-lg border border-gray-200 p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Scans</h3>
         <div className="space-y-3">
-          {[
-            { date: '2026-01-29', disease: 'Healthy Leaf', severity: 'Low', block: 'Block A' },
-            { date: '2026-01-28', disease: 'Blister Blight', severity: 'Medium', block: 'Block C' },
-            { date: '2026-01-26', disease: 'Nutrient Deficiency (Nitrogen)', severity: 'Low', block: 'Block B' },
-          ].map((scan, i) => (
+          {history.map((scan, i) => (
             <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
               <div>
                 <p className="font-medium text-gray-900">{scan.disease}</p>
@@ -209,7 +294,7 @@ export function DiseaseScannerPage() {
               </div>
               <span className={`text-xs px-2 py-1 rounded-full ${
                 scan.severity === 'High' ? 'bg-red-100 text-red-700' :
-                scan.severity === 'Medium' ? 'bg-orange-100 text-orange-700' :
+                scan.severity === 'Moderate' || scan.severity === 'Medium' ? 'bg-orange-100 text-orange-700' :
                 'bg-green-100 text-green-700'
               }`}>
                 {scan.severity}
