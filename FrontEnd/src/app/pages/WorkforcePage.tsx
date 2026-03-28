@@ -892,11 +892,11 @@ export function WorkforcePage() {
             <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col animate-in fade-in zoom-in duration-200">
               <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-blue-50">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center overflow-hidden border-2 border-white shadow-sm">
+                  <div className="w-24 h-24 rounded-full bg-blue-100 flex items-center justify-center overflow-hidden border-4 border-white shadow-md">
                     {selectedWorker.user?.profileImageUrl ? (
                       <img src={selectedWorker.user.profileImageUrl} alt="" className="w-full h-full object-cover" />
                     ) : (
-                      <Users className="w-6 h-6 text-blue-600" />
+                      <Users className="w-12 h-12 text-blue-600" />
                     )}
                   </div>
                   <div>
@@ -936,44 +936,44 @@ export function WorkforcePage() {
                     <div className="space-y-4">
                       <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Contact Details</h3>
                       <div className="space-y-2">
-                        <p className="text-sm flex items-center gap-2"><Mail className="w-4 h-4 text-gray-400" /> {selectedWorkerForTask.user?.email || 'No email'}</p>
-                        <p className="text-sm flex items-center gap-2"><Phone className="w-4 h-4 text-gray-400" /> {selectedWorkerForTask.user?.phone || 'No phone set'}</p>
+                        <p className="text-sm flex items-center gap-2"><Mail className="w-4 h-4 text-gray-400" /> {selectedWorker.user?.email || 'No email'}</p>
+                        <p className="text-sm flex items-center gap-2"><Phone className="w-4 h-4 text-gray-400" /> {selectedWorker.user?.phone || 'No phone set'}</p>
                       </div>
                       <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider pt-2">Personal Info</h3>
                       <div className="space-y-2">
-                        <p className="text-sm text-gray-700"><span className="text-gray-500">Gender:</span> {selectedWorkerForTask.user?.gender || 'Not specified'}</p>
-                        <p className="text-sm text-gray-700"><span className="text-gray-500">Birthday:</span> {selectedWorkerForTask.user?.birthday || 'Not specified'}</p>
+                        <p className="text-sm text-gray-700"><span className="text-gray-500">Gender:</span> {selectedWorker.user?.gender || 'Not specified'}</p>
+                        <p className="text-sm text-gray-700"><span className="text-gray-500">Birthday:</span> {selectedWorker.user?.birthday || 'Not specified'}</p>
                       </div>
                     </div>
                     <div className="space-y-4">
                       <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Employment</h3>
                       <div className="space-y-2">
                         <p className="text-sm text-gray-700"><span className="text-gray-500">Status:</span>
-                          <span className={`ml-2 px-2 py-0.5 rounded-full text-[10px] font-bold ${selectedWorkerForTask.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                            }`}>{selectedWorkerForTask.status}</span>
+                          <span className={`ml-2 px-2 py-0.5 rounded-full text-[10px] font-bold ${selectedWorker.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                            }`}>{selectedWorker.status}</span>
                         </p>
-                        <p className="text-sm text-gray-700"><span className="text-gray-500">Assigned Block:</span> {selectedWorkerForTask.assignedBlock || 'General'}</p>
-                        <p className="text-sm text-gray-700"><span className="text-gray-500">Join Date:</span> {selectedWorkerForTask.joinDate}</p>
+                        <p className="text-sm text-gray-700"><span className="text-gray-500">Assigned Block:</span> {selectedWorker.assignedBlock || 'General'}</p>
+                        <p className="text-sm text-gray-700"><span className="text-gray-500">Join Date:</span> {selectedWorker.joinDate}</p>
                       </div>
                       <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider pt-2">Emergency Contact</h3>
-                      <p className="text-sm text-gray-700">{selectedWorkerForTask.user?.emergencyContact || 'None provided'}</p>
+                      <p className="text-sm text-gray-700">{selectedWorker.user?.emergencyContact || 'None provided'}</p>
                       <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider pt-2">Bank Info</h3>
                       <div className="bg-gray-50 p-3 rounded-lg border border-gray-100 space-y-2">
                         <p className="text-xs text-gray-700">
                           <span className="font-bold text-gray-400 uppercase tracking-tighter mr-2">Bank:</span>
-                          {selectedWorkerForTask.user?.bankName || 'N/A'}
+                          {selectedWorker.user?.bankName || 'N/A'}
                         </p>
                         <p className="text-xs text-gray-700">
                           <span className="font-bold text-gray-400 uppercase tracking-tighter mr-2">Branch:</span>
-                          {selectedWorkerForTask.user?.branchName || 'N/A'}
+                          {selectedWorker.user?.branchName || 'N/A'}
                         </p>
                         <p className="text-xs text-gray-700">
                           <span className="font-bold text-gray-400 uppercase tracking-tighter mr-2">A/C No:</span>
-                          <span className="font-mono text-blue-700">{selectedWorkerForTask.user?.accountNumber || 'N/A'}</span>
+                          <span className="font-mono text-blue-700">{selectedWorker.user?.accountNumber || 'N/A'}</span>
                         </p>
                         <p className="text-xs text-gray-700">
                           <span className="font-bold text-gray-400 uppercase tracking-tighter mr-2">Holder:</span>
-                          {selectedWorkerForTask.user?.accountHolderName || 'N/A'}
+                          {selectedWorker.user?.accountHolderName || 'N/A'}
                         </p>
                       </div>
                     </div>

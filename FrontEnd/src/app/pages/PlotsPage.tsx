@@ -60,6 +60,7 @@ export function PlotsPage() {
   const [sortBy, setSortBy] = useState<string>('blockId');
 
   const fetchPlots = async () => {
+    if (!plantationId) return;
     setLoading(true);
     try {
       const token = await getToken();
@@ -73,8 +74,10 @@ export function PlotsPage() {
   };
 
   useEffect(() => {
-    fetchPlots();
-  }, []);
+    if (plantationId) {
+      fetchPlots();
+    }
+  }, [plantationId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
