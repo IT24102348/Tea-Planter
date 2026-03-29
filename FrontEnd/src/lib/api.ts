@@ -41,8 +41,8 @@ export const api = {
         headers: getHeaders(token)
     }).then(handleResponse),
 
-    assignWorker: (userId: number, functions: string, plantationId: number, pin: string, token?: string) =>
-        fetch(`${API_BASE_URL}/workforce/workers/assign?userId=${userId}&functions=${functions}&plantationId=${plantationId}&pin=${pin}`, {
+    assignWorker: (userId: number, functions: string, plantationId: number, pin: string, assignedBlock?: string, token?: string) =>
+        fetch(`${API_BASE_URL}/workforce/workers/assign?userId=${userId}&functions=${functions}&plantationId=${plantationId}&pin=${pin}${assignedBlock ? `&assignedBlock=${assignedBlock}` : ''}`, {
             method: 'POST',
             headers: getHeaders(token)
         }).then(handleResponse),
@@ -266,10 +266,24 @@ export const api = {
         headers: getHeaders(token),
         body: JSON.stringify(data),
     }).then(handleResponse),
-    updatePayrollStatus: (id: number, status: string, token?: string) => fetch(`${API_BASE_URL}/financial/payroll/${id}/status?status=${status}`, {
-        method: 'PATCH',
-        headers: getHeaders(token)
-    }).then(handleResponse),
+
+    bulkGeneratePayroll: (month: string, plantationId: string, token?: string) => 
+        fetch(`${API_BASE_URL}/financial/payroll/bulk?month=${month}&plantationId=${plantationId}`, {
+            method: 'POST',
+            headers: getHeaders(token)
+        }).then(handleResponse),
+    updatePayrollStatus: (id: number, status: string, mode?: string, token?: string) =>
+        fetch(`${API_BASE_URL}/financial/payroll/${id}/status?status=${status}${mode ? `&mode=${mode}` : ''}`, {
+            method: 'PATCH',
+            headers: getHeaders(token)
+        }).then(handleResponse),
+
+    bulkUpdatePayrollStatus: (ids: number[], status: string, mode: string, token?: string) =>
+        fetch(`${API_BASE_URL}/financial/payroll/bulk-status?status=${status}&mode=${mode}`, {
+            method: 'POST',
+            headers: getHeaders(token),
+            body: JSON.stringify(ids)
+        }).then(handleResponse),
     updatePayroll: (id: string | number, data: any, token?: string) => fetch(`${API_BASE_URL}/financial/payroll/${id}`, {
         method: 'PUT',
         headers: getHeaders(token),

@@ -91,8 +91,10 @@ export function FactoriesPage() {
         }
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        if (!e.currentTarget.reportValidity()) return;
+        
         setIsSubmitting(true);
         try {
             const data = {
@@ -279,6 +281,11 @@ export function FactoriesPage() {
                                     <input
                                         required
                                         type="text"
+                                        maxLength={50}
+                                        placeholder="e.g. Greenfield Tea Factory"
+                                        pattern="^[A-Za-z0-9 ]+$"
+                                        onInvalid={(e) => (e.target as HTMLInputElement).setCustomValidity('Factory Name can only contain letters, numbers, and spaces.')}
+                                        onInput={(e) => (e.target as HTMLInputElement).setCustomValidity('')}
                                         value={formData.name}
                                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
@@ -288,6 +295,11 @@ export function FactoriesPage() {
                                     <label className="block text-sm font-semibold text-gray-700 mb-1">Registration No</label>
                                     <input
                                         type="text"
+                                        maxLength={20}
+                                        placeholder="e.g. REF12345"
+                                        pattern="^[A-Za-z0-9]+$"
+                                        onInvalid={(e) => (e.target as HTMLInputElement).setCustomValidity('Registration No can only contain letters and numbers.')}
+                                        onInput={(e) => (e.target as HTMLInputElement).setCustomValidity('')}
                                         value={formData.registerNo}
                                         onChange={(e) => setFormData({ ...formData, registerNo: e.target.value })}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
@@ -298,7 +310,13 @@ export function FactoriesPage() {
                             <div>
                                 <label className="block text-sm font-semibold text-gray-700 mb-1">Factory Contact Number</label>
                                 <input
+                                    required
                                     type="text"
+                                    maxLength={10}
+                                    placeholder="e.g. 0771234567 (10 digits)"
+                                    pattern="[0-9]{10}"
+                                    onInvalid={(e) => (e.target as HTMLInputElement).setCustomValidity('Please enter a valid 10-digit phone number.')}
+                                    onInput={(e) => (e.target as HTMLInputElement).setCustomValidity('')}
                                     value={formData.contactNumber}
                                     onChange={(e) => setFormData({ ...formData, contactNumber: e.target.value })}
                                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
@@ -315,6 +333,11 @@ export function FactoriesPage() {
                                         <label className="block text-sm font-semibold text-gray-700 mb-1">Supervisor Name</label>
                                         <input
                                             type="text"
+                                            maxLength={50}
+                                            placeholder="e.g. John Doe"
+                                            pattern="^[A-Za-z0-9 ]+$"
+                                            onInvalid={(e) => (e.target as HTMLInputElement).setCustomValidity('Supervisor Name can only contain letters, numbers, and spaces.')}
+                                            onInput={(e) => (e.target as HTMLInputElement).setCustomValidity('')}
                                             value={formData.lorrySupervisorName}
                                             onChange={(e) => setFormData({ ...formData, lorrySupervisorName: e.target.value })}
                                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
@@ -324,6 +347,11 @@ export function FactoriesPage() {
                                         <label className="block text-sm font-semibold text-gray-700 mb-1">Supervisor Contact</label>
                                         <input
                                             type="text"
+                                            maxLength={10}
+                                            placeholder="e.g. 0777654321 (10 digits)"
+                                            pattern="[0-9]{10}"
+                                            onInvalid={(e) => (e.target as HTMLInputElement).setCustomValidity('Please enter a valid 10-digit phone number.')}
+                                            onInput={(e) => (e.target as HTMLInputElement).setCustomValidity('')}
                                             value={formData.lorrySupervisorContact}
                                             onChange={(e) => setFormData({ ...formData, lorrySupervisorContact: e.target.value })}
                                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"

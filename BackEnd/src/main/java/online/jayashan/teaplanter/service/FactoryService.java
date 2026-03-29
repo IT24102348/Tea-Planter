@@ -105,18 +105,13 @@ public class FactoryService {
         double tolerance = 0.001;
 
         if (dailyHarvests.isEmpty()) {
-            throw new RuntimeException("Cannot record delivery for " + delivery.getDeliveryDate()
-                    + ". No harvest records found for this date. Total harvested is 0.00kg.");
+            throw new RuntimeException("No tea harvested on " + delivery.getDeliveryDate() + ". Cannot record delivery.");
         }
 
         if (alreadyDelivered + currentWeight > totalHarvested + tolerance) {
-            throw new RuntimeException("Delivery validation failed for " + delivery.getDeliveryDate() + ". " +
-                    "Daily Harvest Total: " + String.format("%.2f", totalHarvested) + "kg (" + dailyHarvests.size()
-                    + " records). " +
-                    "Already Delivered: " + String.format("%.2f", alreadyDelivered) + "kg. " +
-                    "New Attempt: " + String.format("%.2f", currentWeight) + "kg. " +
-                    "The total delivery (" + String.format("%.2f", alreadyDelivered + currentWeight)
-                    + "kg) would exceed the total harvested amount.");
+            double remaining = Math.max(0, totalHarvested - alreadyDelivered);
+            throw new RuntimeException("Delivery exceeds available harvest. Today's remaining harvest: " 
+                    + String.format("%.2f", remaining) + "kg.");
         }
 
         return teaDeliveryRepository.save(delivery);

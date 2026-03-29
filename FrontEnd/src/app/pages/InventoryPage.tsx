@@ -97,12 +97,9 @@ export function InventoryPage() {
     fetchInventory();
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!formData.name || !formData.reorderLevel) {
-      alert('Please fill in required fields');
-      return;
-    }
+    if (!e.currentTarget.reportValidity()) return;
 
     setIsSubmitting(true);
     try {
@@ -140,9 +137,10 @@ export function InventoryPage() {
     }
   };
 
-  const handleRestock = async (e: React.FormEvent) => {
+  const handleRestock = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!selectedItem || !stockFormData.quantity || !stockFormData.unitPrice) return;
+    if (!e.currentTarget.reportValidity()) return;
+    if (!selectedItem) return;
 
     setIsSubmitting(true);
     try {
@@ -159,15 +157,16 @@ export function InventoryPage() {
       fetchInventory();
     } catch (error) {
       console.error('Failed to restock:', error);
-      alert('Failed to record restock.');
+      setFormError('Failed to record restock.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleUse = async (e: React.FormEvent) => {
+  const handleUse = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!selectedItem || !stockFormData.quantity) return;
+    if (!e.currentTarget.reportValidity()) return;
+    if (!selectedItem) return;
 
     setIsSubmitting(true);
     try {
@@ -184,7 +183,7 @@ export function InventoryPage() {
       fetchInventory();
     } catch (error) {
       console.error('Failed to use stock:', error);
-      alert('Failed to record usage.');
+      setFormError('Failed to record usage.');
     } finally {
       setIsSubmitting(false);
     }
@@ -201,11 +200,15 @@ export function InventoryPage() {
     setShowModal(true);
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (item: InventoryItem) => {
+    if (item.currentStock > 0) {
+      alert("Cant delete stock available item");
+      return;
+    }
     if (!confirm('Are you sure you want to delete this item?')) return;
     try {
       const token = await getToken();
-      await api.deleteInventoryItem(id, token || undefined);
+      await api.deleteInventoryItem(item.id, token || undefined);
       fetchInventory();
     } catch (error) {
       console.error('Failed to delete item:', error);
@@ -222,8 +225,9 @@ export function InventoryPage() {
     setShowLogEditModal(true);
   };
 
-  const handleUpdateLog = async (e: React.FormEvent) => {
+  const handleUpdateLog = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!e.currentTarget.reportValidity()) return;
     if (!editingLog || !stockFormData.quantity) return;
 
     setIsSubmitting(true);
@@ -527,7 +531,7 @@ export function InventoryPage() {
                         <Edit2 className="w-4 h-4" />
                       </button>
                       <button
-                        onClick={() => handleDelete(item.id)}
+                        onClick={() => handleDelete(item)}
                         className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                         title="Delete Item"
                       >
@@ -564,6 +568,10 @@ export function InventoryPage() {
                 <input
                   required
                   type="text"
+                  maxLength={50}
+                  pattern="^[A-Za-z0-9 ]+$"
+                  onInvalid={(e) => (e.target as HTMLInputElement).setCustomValidity('Item Name can only contain letters, numbers, and spaces.')}
+                  onInput={(e) => (e.target as HTMLInputElement).setCustomValidity('')}
                   placeholder="e.g. Zinc Fertilizer"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -609,6 +617,9 @@ export function InventoryPage() {
                     required
                     type="number"
                     step="0.1"
+                    min="0"
+                    onInvalid={(e) => (e.target as HTMLInputElement).setCustomValidity('Reorder level must be a non-negative value.')}
+                    onInput={(e) => (e.target as HTMLInputElement).setCustomValidity('')}
                     placeholder="0.00"
                     value={formData.reorderLevel}
                     onChange={(e) => setFormData({ ...formData, reorderLevel: e.target.value })}
@@ -669,6 +680,9 @@ export function InventoryPage() {
                     required
                     type="number"
                     step="0.01"
+                    min="0.01"
+                    onInvalid={(e) => (e.target as HTMLInputElement).setCustomValidity('Quantity must be greater than zero.')}
+                    onInput={(e) => (e.target as HTMLInputElement).setCustomValidity('')}
                     placeholder={`0.00 ${selectedItem.unit}`}
                     value={stockFormData.quantity}
                     onChange={(e) => setStockFormData({ ...stockFormData, quantity: e.target.value })}
@@ -681,6 +695,9 @@ export function InventoryPage() {
                     required
                     type="number"
                     step="0.01"
+                    min="0"
+                    onInvalid={(e) => (e.target as HTMLInputElement).setCustomValidity('Unit price cannot be negative.')}
+                    onInput={(e) => (e.target as HTMLInputElement).setCustomValidity('')}
                     placeholder="0.00"
                     value={stockFormData.unitPrice}
                     onChange={(e) => setStockFormData({ ...stockFormData, unitPrice: e.target.value })}
@@ -741,6 +758,9 @@ export function InventoryPage() {
                     required
                     type="number"
                     step="0.01"
+                    min="0.01"
+                    onInvalid={(e) => (e.target as HTMLInputElement).setCustomValidity(`Please enter a quantity between 0.01 and ${selectedItem.currentStock}.`)}
+                    onInput={(e) => (e.target as HTMLInputElement).setCustomValidity('')}
                     placeholder={`0.00 ${selectedItem.unit}`}
                     max={selectedItem.currentStock}
                     value={stockFormData.quantity}

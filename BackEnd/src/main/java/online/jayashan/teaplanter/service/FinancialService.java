@@ -27,8 +27,12 @@ public class FinancialService {
                 Worker worker = workerRepository.findById(payroll.getWorker().getId())
                                 .orElseThrow(() -> new RuntimeException("Worker not found"));
 
-                java.time.LocalDate start = payroll.getMonth().withDayOfMonth(1);
-                java.time.LocalDate end = payroll.getMonth().withDayOfMonth(payroll.getMonth().lengthOfMonth());
+                return calculateAndSavePayroll(worker, payroll.getMonth(), payroll);
+        }
+
+        private Payroll calculateAndSavePayroll(Worker worker, java.time.LocalDate month, Payroll payroll) {
+                java.time.LocalDate start = month.withDayOfMonth(1);
+                java.time.LocalDate end = month.withDayOfMonth(month.lengthOfMonth());
 
                 double harvestEarnings = harvestRepository.findByWorkerAndHarvestDateBetween(worker, start, end)
                                 .stream()
@@ -39,10 +43,31 @@ public class FinancialService {
                                 .findByAssignedWorkerAndCompletedAtBetween(worker, start.atStartOfDay(),
                                                 end.atTime(23, 59, 59)));
 
+                payroll.setWorker(worker);
+                payroll.setMonth(start);
                 payroll.setBasicWage(harvestEarnings + taskEarnings);
                 payroll.setStatus("PENDING");
                 payroll.setPlantation(worker.getPlantation()); // Scoping
                 return payrollRepository.save(payroll);
+        }
+
+        public List<Payroll> generateAllPayrolls(java.time.LocalDate month, Long plantationId) {
+                online.jayashan.teaplanter.entity.Plantation plantation = plantationRepository.findById(plantationId)
+                                .orElseThrow(() -> new RuntimeException("Plantation not found"));
+
+                List<Worker> workers = workerRepository.findByPlantation(plantation);
+                java.time.LocalDate targetMonth = month.withDayOfMonth(1);
+
+                return workers.stream()
+                                .filter(w -> !payrollRepository.existsByWorkerAndMonth(w, targetMonth))
+                                .map(w -> {
+                                        Payroll p = new Payroll();
+                                        p.setWorker(w);
+                                        p.setMonth(targetMonth);
+                                        p.setPlantation(plantation);
+                                        return calculateAndSavePayroll(w, targetMonth, p);
+                                })
+                                .collect(java.util.stream.Collectors.toList());
         }
 
         public List<Payroll> getAllPayrolls(java.time.LocalDate month, Long plantationId) {
@@ -69,7 +94,7 @@ public class FinancialService {
                 return payrollRepository.findByMonthBetween(start, end);
         }
 
-        public Payroll updatePayrollStatus(Long id, String status) {
+        public Payroll updatePayrollStatus(Long id, String status, String mode) {
                 Payroll payroll = payrollRepository.findById(id)
                                 .orElseThrow(() -> new RuntimeException("Payroll record not found"));
 
@@ -80,7 +105,28 @@ public class FinancialService {
                 }
 
                 payroll.setStatus(status);
+                if (mode != null) {
+                        payroll.setPaymentMode(mode);
+                }
+                
+                if ("PAID".equals(status)) {
+                        payroll.setPaidDate(java.time.LocalDate.now());
+                }
                 return payrollRepository.save(payroll);
+        }
+
+        public List<Payroll> bulkUpdatePayrollStatus(List<Long> ids, String status, String mode) {
+                List<Payroll> payrolls = payrollRepository.findAllById(ids);
+                payrolls.forEach(p -> {
+                        p.setStatus(status);
+                        if (mode != null) {
+                                p.setPaymentMode(mode);
+                        }
+                        if ("PAID".equals(status)) {
+                                p.setPaidDate(java.time.LocalDate.now());
+                        }
+                });
+                return payrollRepository.saveAll(payrolls);
         }
 
         public List<Payroll> getPayrollByWorker(Long workerId) {
