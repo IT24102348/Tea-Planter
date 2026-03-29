@@ -26,7 +26,7 @@ public class SecurityConfig {
 
     private final UserSynchronizationFilter userSynchronizationFilter;
 
-    @Value("${FRONTEND_URL:http://localhost:5173}")
+    @Value("${FRONTEND_URL:http://localhost:5174}")
     private String frontendUrl;
 
     @Bean
