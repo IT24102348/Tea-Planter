@@ -21,6 +21,12 @@ public class FinancialController {
         return financialService.generatePayroll(payroll);
     }
 
+    @PostMapping("/payroll/bulk")
+    public List<Payroll> generateAllPayrolls(@RequestParam String month, @RequestParam Long plantationId) {
+        java.time.LocalDate date = java.time.LocalDate.parse(month + "-01");
+        return financialService.generateAllPayrolls(date, plantationId);
+    }
+
     @GetMapping("/payroll")
     public List<Payroll> getAllPayrolls(@RequestParam(required = false) String month,
             @RequestParam(required = false) Long plantationId) {
@@ -29,8 +35,13 @@ public class FinancialController {
     }
 
     @PatchMapping("/payroll/{id}/status")
-    public Payroll updateStatus(@PathVariable Long id, @RequestParam String status) {
-        return financialService.updatePayrollStatus(id, status);
+    public Payroll updateStatus(@PathVariable Long id, @RequestParam String status, @RequestParam(required = false) String mode) {
+        return financialService.updatePayrollStatus(id, status, mode);
+    }
+
+    @PostMapping("/payroll/bulk-status")
+    public List<Payroll> bulkUpdateStatus(@RequestParam String status, @RequestParam String mode, @RequestBody List<Long> ids) {
+        return financialService.bulkUpdatePayrollStatus(ids, status, mode);
     }
 
     @PutMapping("/payroll/{id}")

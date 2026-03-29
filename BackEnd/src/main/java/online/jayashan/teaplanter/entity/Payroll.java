@@ -42,6 +42,10 @@ public class Payroll {
     @Column(nullable = false)
     private String status; // PENDING, APPROVED, PAID, REMOVED
 
+    private String paymentMode; // BANK, CASH
+
+    private LocalDate paidDate;
+
     @PrePersist
     @PreUpdate
     public void calculateNetPay() {

@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
-import { DollarSign, TrendingUp, TrendingDown, Download, Loader2, Info, Activity, Plus, ChevronRight, Edit2, Trash2, AlertCircle, Package, CheckCircle, Search, Filter, ArrowUpDown, Calendar } from 'lucide-react';
+import { DollarSign, TrendingUp, TrendingDown, Download, Loader2, Info, Activity, Plus, ChevronRight, Edit2, Trash2, AlertCircle, Package, CheckCircle, Search, Filter, ArrowUpDown, Calendar, Landmark, QrCode, Sparkles } from 'lucide-react';
+import { Html5Qrcode } from 'html5-qrcode';
 import { useUser, useAuth } from '@clerk/clerk-react';
 import { api } from '@/lib/api';
 import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
@@ -8,6 +9,7 @@ interface PayrollRecord {
   id: number;
   worker: {
     id: number;
+    qrCode?: string;
     user?: {
       name: string;
       bankName?: string;
@@ -21,6 +23,8 @@ interface PayrollRecord {
   deductions: number;
   netPay: number;
   status: string;
+  paymentMode?: string;
+  paidDate?: string;
 }
 
 interface IncomeRecord {
@@ -80,8 +84,6 @@ export function FinancialPage() {
   const [showEditPayrollModal, setShowEditPayrollModal] = useState(false);
   const [editingPayroll, setEditingPayroll] = useState<PayrollRecord | null>(null);
   const [editingIncome, setEditingIncome] = useState<IncomeRecord | null>(null);
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [selectedPayrollForPayment, setSelectedPayrollForPayment] = useState<PayrollRecord | null>(null);
   const [payrollPreview, setPayrollPreview] = useState<any>(null);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -105,6 +107,12 @@ export function FinancialPage() {
     registerNo: '',
     pricePerKg: ''
   });
+  const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'PAYROLL' | 'INCOMES' | 'BANK_TRANSFERS' | 'FACTORIES'>('OVERVIEW');
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showQRScanner, setShowQRScanner] = useState(false);
+  const [selectedPayrollForPayment, setSelectedPayrollForPayment] = useState<PayrollRecord | null>(null);
+  const [qrError, setQrError] = useState<string | null>(null);
+
   const [deliveryFormData, setDeliveryFormData] = useState({
     factoryId: '',
     weight: '',
@@ -172,12 +180,53 @@ export function FinancialPage() {
     fetchPreview();
   }, [showModal, formData.workerId, formData.month]);
 
+  // Auto-calculate Gross Weight and Price from Deliveries for Paysheet
+  useEffect(() => {
+    const calculateWeight = async () => {
+      if (!showIncomeModal || editingIncome || !incomeFormData.factoryId) return;
+
+      const targetMonth = `${incomeFormData.year}-${String(incomeFormData.month).padStart(2, '0')}`;
+      let targetDeliveries = [...deliveries];
+
+      // If requested month differs from page filter, fetch deliveries for that month
+      if (targetMonth !== selectedMonth) {
+        try {
+          const token = await getToken();
+          const fetched = await api.getDeliveries(targetMonth, plantationId, token || undefined);
+          targetDeliveries = fetched || [];
+        } catch (error) {
+          console.error('Failed to fetch deliveries for auto-calc:', error);
+          return;
+        }
+      }
+
+      // Filter and sum weight
+      const total = targetDeliveries
+        .filter(d => d.factory.id.toString() === incomeFormData.factoryId)
+        .reduce((sum, d) => sum + (d.weight || 0), 0);
+
+      // Find factory rate
+      const factory = factories.find(f => f.id.toString() === incomeFormData.factoryId);
+      const rate = factory?.pricePerKg?.toString() || '';
+
+      setIncomeFormData(prev => ({
+        ...prev,
+        totalWeight: total > 0 ? total.toFixed(2) : prev.totalWeight,
+        pricePerKg: rate || prev.pricePerKg
+      }));
+    };
+
+    calculateWeight();
+  }, [showIncomeModal, incomeFormData.factoryId, incomeFormData.month, incomeFormData.year, deliveries, selectedMonth, factories]);
+
   useEffect(() => {
     fetchData();
   }, [selectedMonth]);
 
-  const handleGeneratePayroll = async (e: React.FormEvent) => {
+  const handleGeneratePayroll = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!e.currentTarget.reportValidity()) return;
+    
     if (!formData.workerId || !formData.month) {
       alert('Please select a worker and month');
       return;
@@ -201,8 +250,28 @@ export function FinancialPage() {
     }
   };
 
-  const handleAddIncome = async (e: React.FormEvent) => {
+  const handleBulkGeneratePayroll = async () => {
+    if (!plantationId) return;
+    if (!confirm(`Generate payroll records for ALL workers for ${selectedMonth}? Existing records for this month will be skipped to prevent duplicates.`)) return;
+
+    setIsSubmitting(true);
+    try {
+      const token = await getToken();
+      await api.bulkGeneratePayroll(selectedMonth, plantationId, token || undefined);
+      fetchData();
+      alert('Payroll generation for all workers initiated successfully!');
+    } catch (error) {
+      console.error('Bulk payroll generation failed:', error);
+      alert(`Failed to generate all payrolls: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleAddIncome = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!e.currentTarget.reportValidity()) return;
+    
     if (!incomeFormData.factoryId || !incomeFormData.totalWeight || !incomeFormData.pricePerKg) {
       alert('Please fill in required fields');
       return;
@@ -279,8 +348,10 @@ export function FinancialPage() {
     }
   };
 
-  const handleAddFactory = async (e: React.FormEvent) => {
+  const handleAddFactory = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!e.currentTarget.reportValidity()) return;
+    
     if (!factoryFormData.name) {
       alert('Factory name is required');
       return;
@@ -305,8 +376,10 @@ export function FinancialPage() {
     }
   };
 
-  const handleRecordDelivery = async (e: React.FormEvent) => {
+  const handleRecordDelivery = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!e.currentTarget.reportValidity()) return;
+    
     if (!deliveryFormData.factoryId || !deliveryFormData.weight) {
       alert('Please fill in required fields');
       return;
@@ -332,8 +405,10 @@ export function FinancialPage() {
     }
   };
 
-  const handleUpdatePayroll = async (e: React.FormEvent) => {
+  const handleUpdatePayroll = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!e.currentTarget.reportValidity()) return;
+    
     if (!editingPayroll) return;
 
     setIsSubmitting(true);
@@ -355,6 +430,20 @@ export function FinancialPage() {
     }
   };
 
+  const handleApprovePayroll = async (id: number) => {
+    setIsSubmitting(true);
+    try {
+      const token = await getToken();
+      await api.updatePayrollStatus(id, 'APPROVED', undefined, token || undefined);
+      fetchData();
+    } catch (error) {
+      console.error('Failed to approve payroll:', error);
+      alert('Failed to approve payroll.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleDeletePayroll = async (id: number) => {
     if (!confirm('Are you sure you want to delete this payroll record?')) return;
 
@@ -369,22 +458,108 @@ export function FinancialPage() {
     }
   };
 
-  const handlePay = async (payroll: PayrollRecord) => {
-    if (!confirm(`Mark payroll for ${payroll.worker.user?.name || 'this worker'} as PAID?`)) return;
+  const handlePay = (payroll: PayrollRecord) => {
+    setSelectedPayrollForPayment(payroll);
+    setShowPaymentModal(true);
+  };
+
+  const handleSelectBankTransfer = async () => {
+    if (!selectedPayrollForPayment) return;
+    
+    setIsSubmitting(true);
+    try {
+      const token = await getToken();
+      // Only set the paymentMode to BANK and ensure it remains APPROVED
+      await api.updatePayrollStatus(selectedPayrollForPayment.id, 'APPROVED', 'BANK', token || undefined);
+      setShowPaymentModal(false);
+      setSelectedPayrollForPayment(null);
+      fetchData();
+      alert('Payroll moved to Bank Transfer list for processing.');
+    } catch (error) {
+      console.error('Failed to select bank transfer:', error);
+      alert('Failed to update payment mode.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleConfirmPayment = async (mode: 'BANK' | 'CASH') => {
+    if (!selectedPayrollForPayment) return;
+
+    if (mode === 'CASH') {
+      setShowQRScanner(true);
+      setShowPaymentModal(false);
+      return;
+    }
 
     setIsSubmitting(true);
     try {
       const token = await getToken();
-      await api.updatePayrollStatus(payroll.id, 'PAID', token || undefined);
+      // Mark as PAID
+      await api.updatePayrollStatus(selectedPayrollForPayment.id, 'PAID', mode, token || undefined);
       setShowPaymentModal(false);
       setSelectedPayrollForPayment(null);
       fetchData();
-      alert('Payroll marked as PAID successfully!');
+      alert('Payroll marked as PAID via Bank Transfer!');
     } catch (error) {
       console.error('Failed to update payroll status:', error);
       alert('Failed to mark payroll as PAID.');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const markAllAsPaid = async (payrollIds: number[]) => {
+    if (!confirm(`Mark ${payrollIds.length} records as PAID via Bank Transfer?`)) return;
+    
+    setIsSubmitting(true);
+    try {
+      const token = await getToken();
+      await api.bulkUpdatePayrollStatus(payrollIds, 'PAID', 'BANK', token || undefined);
+      fetchData();
+      alert('All selected records marked as PAID!');
+    } catch (error) {
+      console.error('Bulk update failed:', error);
+      alert('Failed to update records. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleQRScanSuccess = async (decodedText: string) => {
+    if (!selectedPayrollForPayment) return;
+
+    const scanned = decodedText.trim();
+    const expected = selectedPayrollForPayment.worker.qrCode?.trim() || "";
+    
+    console.log("QR Scan Verification:", { 
+      scanned, 
+      expected, 
+      worker: selectedPayrollForPayment.worker.user?.name 
+    });
+
+    if (scanned === expected && expected !== "") {
+      setIsSubmitting(true);
+      setQrError(null);
+      try {
+        const token = await getToken();
+        await api.updatePayrollStatus(selectedPayrollForPayment.id, 'PAID', 'CASH', token || undefined);
+        setShowQRScanner(false);
+        setSelectedPayrollForPayment(null);
+        fetchData();
+        alert(`Payment verified! Cash handed over to ${selectedPayrollForPayment.worker.user?.name}.`);
+      } catch (error) {
+        console.error('QR Payment failed:', error);
+        setQrError('Failed to process payment. Please try again.');
+      } finally {
+        setIsSubmitting(false);
+      }
+    } else {
+      if (!expected) {
+        setQrError('Error: This worker has no QR code assigned in their profile.');
+      } else {
+        setQrError('QR Code mismatch! This QR belongs to a different worker.');
+      }
     }
   };
 
@@ -410,7 +585,9 @@ export function FinancialPage() {
   }, [incomes, incomeSearchTerm, incomeSortBy]);
 
   const filteredPayrolls = useMemo(() => {
-    let result = [...payrolls];
+    // Exclude records that are already designated for Bank Transfers (but not yet paid) 
+    // to simulate the "move" behavior.
+    let result = payrolls.filter(p => !(p.status === 'APPROVED' && p.paymentMode === 'BANK'));
 
     if (payrollSearchTerm) {
       const term = payrollSearchTerm.toLowerCase();
@@ -496,341 +673,589 @@ export function FinancialPage() {
             />
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 text-xs font-bold text-gray-400 uppercase tracking-widest bg-gray-50 px-3 py-1 rounded-full border border-gray-100">
+           Plantation Financials
+        </div>
+      </div>
+
+      {/* Tab Navigation */}
+      <div className="flex flex-wrap gap-2 border-b border-gray-200">
+        {[
+          { id: 'OVERVIEW', label: 'Financial Overview', icon: Activity },
+          { id: 'PAYROLL', label: 'Payroll & Wages', icon: DollarSign },
+          { id: 'BANK_TRANSFERS', label: 'Bank Transfers', icon: Landmark },
+          { id: 'FACTORIES', label: 'Factory Management', icon: Package }
+        ].map((tab) => (
           <button
-            onClick={() => setShowModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium"
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id as any)}
+            className={`flex items-center gap-2 px-6 py-3 text-sm font-bold border-b-2 transition-all ${
+              activeTab === tab.id
+                ? 'border-blue-600 text-blue-600 bg-blue-50/50 rounded-t-lg'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+            }`}
           >
-            <Plus className="w-5 h-5" />
-            Generate Payroll
+            <tab.icon className="w-4 h-4" />
+            {tab.label}
           </button>
-          <button 
-            onClick={handleExport}
-            disabled={isExporting}
-            className="flex items-center gap-2 px-4 py-2 border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-lg font-medium outline-none disabled:opacity-50 transition-all"
-          >
-            {isExporting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5" />}
-            {isExporting ? 'Exporting...' : 'Export'}
-          </button>
-        </div>
+        ))}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="p-2 rounded-lg bg-green-100">
-              <TrendingUp className="w-5 h-5 text-green-700" />
+      {activeTab === 'OVERVIEW' && (
+        <div className="space-y-6 animate-in fade-in duration-500">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <h3 className="text-xl font-bold text-gray-900">Financial Performance</h3>
+              <p className="text-sm text-gray-500">Overview of revenue, expenses and net profit</p>
             </div>
-            <p className="text-sm font-normal text-gray-600">Total Revenue</p>
-          </div>
-          <p className="text-2xl font-bold text-gray-900">
-            LKR {totalRevenue.toLocaleString()}
-          </p>
-          <p className="text-sm text-gray-500 mt-2">Total from factory labels</p>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="p-2 rounded-lg bg-red-100">
-              <TrendingDown className="w-5 h-5 text-red-700" />
-            </div>
-            <p className="text-sm font-normal text-gray-600">Labor Expenses</p>
-          </div>
-          <p className="text-2xl font-bold text-gray-900">
-            LKR {totalPayroll.toLocaleString()}
-          </p>
-          <p className="text-sm text-gray-500 mt-2">Sum of all net payrolls</p>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="p-2 rounded-lg bg-orange-100">
-              <Package className="w-5 h-5 text-orange-700" />
-            </div>
-            <p className="text-sm font-normal text-gray-600">Input Expenses</p>
-          </div>
-          <p className="text-2xl font-bold text-gray-900">
-            LKR {inventoryExpenses.toLocaleString()}
-          </p>
-          <p className="text-sm text-gray-500 mt-2">Fertilizer, chemicals & stock</p>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="p-2 rounded-lg bg-blue-100">
-              <Activity className="w-5 h-5 text-blue-700" />
-            </div>
-            <p className="text-sm font-normal text-gray-600">Net Profit</p>
-          </div>
-          <p className={`text-2xl font-bold ${netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-            LKR {netProfit.toLocaleString()}
-          </p>
-          <p className="text-sm text-gray-500 mt-2">Revenue minus all expenses</p>
-        </div>
-      </div>
-
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">Factory Paysheets (Monthly)</h3>
-            <button
-              onClick={() => setShowIncomeModal(true)}
-              className="text-sm text-blue-600 hover:text-blue-700 font-medium whitespace-nowrap"
+            <button 
+              onClick={handleExport}
+              disabled={isExporting}
+              className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-lg font-bold text-sm shadow-sm transition-all active:scale-95 disabled:opacity-50"
             >
-              + Record Paysheet
+              {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+              {isExporting ? 'Exporting...' : 'Export Financial Report'}
             </button>
           </div>
-
-          <div className="flex flex-col sm:flex-row gap-3 mb-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search factory..."
-                value={incomeSearchTerm}
-                onChange={(e) => setIncomeSearchTerm(e.target.value)}
-                className="w-full pl-9 pr-4 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <ArrowUpDown className="w-4 h-4 text-gray-400" />
-              <select
-                value={incomeSortBy}
-                onChange={(e) => setIncomeSortBy(e.target.value)}
-                className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm font-medium focus:ring-2 focus:ring-blue-500 outline-none"
-              >
-                <option value="date-desc">Newest First</option>
-                <option value="amount-desc">Highest Amount</option>
-                <option value="amount-asc">Lowest Amount</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
-            {filteredIncomes.map((income) => (
-              <div key={income.id} className="p-4 bg-gray-50 rounded-lg border border-gray-100">
-                <div className="flex justify-between items-start mb-2">
-                  <div>
-                    <p className="font-bold text-gray-900">{income.factory?.name}</p>
-                    <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">{new Date(0, (income.date?.month || 1) - 1).toLocaleString('default', { month: 'long' })} {income.date?.year}</p>
-                  </div>
-                  <div className="text-right flex flex-col items-end">
-                    <p className="font-bold text-green-600 text-lg">LKR {income.netAmount?.toLocaleString()}</p>
-                    <div className="flex gap-2 mt-1">
-                      <button
-                        onClick={() => handleEditIncome(income)}
-                        className="p-1 text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                        title="Edit"
-                      >
-                        <Edit2 className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteIncome(income.id)}
-                        className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors"
-                        title="Delete"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                    <span className="text-xs text-gray-400 bg-gray-200 px-2 py-0.5 rounded-full mt-1">Paysheet ID: #{income.id}</span>
-                  </div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-2 rounded-lg bg-green-100">
+                  <TrendingUp className="w-5 h-5 text-green-700" />
                 </div>
-                <div className="grid grid-cols-2 gap-y-1 text-xs border-t border-gray-200 pt-2 mt-2">
-                  <div className="text-gray-500">Gross Weight:</div>
-                  <div className="text-right font-medium">{income.totalWeight} kg</div>
-                  <div className="text-gray-500">Price per Kg:</div>
-                  <div className="text-right font-medium">LKR {income.pricePerKg}</div>
-                  <div className="text-red-400">Transport:</div>
-                  <div className="text-right font-medium text-red-500">-(LKR {income.transportDeduction})</div>
-                  <div className="text-red-400">Other Cutouts:</div>
-                  <div className="text-right font-medium text-red-500">-(LKR {income.otherDeductions})</div>
-                </div>
+                <p className="text-sm font-semibold text-gray-600">Total Revenue</p>
               </div>
-            ))}
-            {filteredIncomes.length === 0 && (
-              <p className="text-center py-4 text-gray-500 text-sm">No monthly paysheets found.</p>
-            )}
-          </div>
-        </div>
+              <p className="text-2xl font-bold text-gray-900">
+                LKR {totalRevenue.toLocaleString()}
+              </p>
+              <p className="text-xs text-gray-500 mt-2">Total from factory labels</p>
+            </div>
 
-        <div className="bg-white rounded-xl shadow-sm p-6 flex flex-col">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">Profit Distribution</h3>
+            <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-2 rounded-lg bg-red-100">
+                  <TrendingDown className="w-5 h-5 text-red-700" />
+                </div>
+                <p className="text-sm font-semibold text-gray-600">Labor Expenses</p>
+              </div>
+              <p className="text-2xl font-bold text-gray-900">
+                LKR {totalPayroll.toLocaleString()}
+              </p>
+              <p className="text-xs text-gray-500 mt-2">Sum of all net payrolls</p>
+            </div>
+
+            <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-2 rounded-lg bg-orange-100">
+                  <Package className="w-5 h-5 text-orange-700" />
+                </div>
+                <p className="text-sm font-semibold text-gray-600">Input Expenses</p>
+              </div>
+              <p className="text-2xl font-bold text-gray-900">
+                LKR {inventoryExpenses.toLocaleString()}
+              </p>
+              <p className="text-xs text-gray-500 mt-2">Fertilizer, chemicals & stock</p>
+            </div>
+
+            <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-2 rounded-lg bg-blue-100">
+                  <Activity className="w-5 h-5 text-blue-700" />
+                </div>
+                <p className="text-sm font-semibold text-gray-600">Net Profit</p>
+              </div>
+              <p className={`text-2xl font-bold ${netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                LKR {netProfit.toLocaleString()}
+              </p>
+              <p className="text-xs text-gray-500 mt-2">Revenue minus all expenses</p>
+            </div>
           </div>
 
-          <div className="flex-1 h-[350px] min-h-[350px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={[
-                    { name: 'Labor', value: totalPayroll },
-                    { name: 'Inputs', value: inventoryExpenses },
-                    { name: 'Profit', value: Math.max(0, netProfit) }
-                  ].filter(d => d.value > 0)}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={80}
-                  outerRadius={120}
-                  paddingAngle={5}
-                  dataKey="value"
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Short Factory List */}
+            <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-bold text-gray-900">Recent Factory Incomes</h3>
+                <button
+                  onClick={() => setActiveTab('FACTORIES')}
+                  className="text-sm text-blue-600 hover:underline font-semibold"
                 >
-                  <Cell fill="#EF4444" />
-                  <Cell fill="#F97316" />
-                  <Cell fill="#22C55E" />
-                </Pie>
-                <RechartsTooltip
-                  formatter={(value: number) => `LKR ${value.toLocaleString()}`}
-                  contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                />
-                <Legend verticalAlign="bottom" height={36} iconType="circle" />
-                <text x="50%" y="48%" textAnchor="middle" dominantBaseline="middle" className="text-xl font-bold fill-gray-900">
-                  LKR {totalRevenue.toLocaleString()}
-                </text>
-                <text x="50%" y="55%" textAnchor="middle" dominantBaseline="middle" className="text-xs font-medium fill-gray-400 uppercase tracking-wider">
-                  Total Revenue
-                </text>
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-          <p className="text-center text-xs text-gray-400 mt-2 uppercase tracking-wider font-medium">
-            Revenue Allocation Overview
-          </p>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-xl shadow-sm p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">Payroll Records</h3>
-          <div className="text-sm text-gray-500">
-            Total payout: <span className="font-bold text-blue-600">LKR {totalPayroll.toLocaleString()}</span>
-          </div>
-        </div>
-
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search by worker name..."
-              value={payrollSearchTerm}
-              onChange={(e) => setPayrollSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-            />
-          </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-2">
-              <Filter className="w-4 h-4 text-gray-400" />
-              <select
-                value={payrollFilterStatus}
-                onChange={(e) => setPayrollFilterStatus(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium focus:ring-2 focus:ring-blue-500 outline-none"
-              >
-                <option value="ALL">All Status</option>
-                <option value="PENDING">Pending</option>
-                <option value="APPROVED">Approved</option>
-                <option value="PAID">Paid</option>
-              </select>
-            </div>
-            <div className="flex items-center gap-2">
-              <ArrowUpDown className="w-4 h-4 text-gray-400" />
-              <select
-                value={payrollSortBy}
-                onChange={(e) => setPayrollSortBy(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium focus:ring-2 focus:ring-blue-500 outline-none"
-              >
-                <option value="name-asc">Name (A-Z)</option>
-                <option value="amount-desc">Net Pay (High-Low)</option>
-                <option value="status">Status</option>
-              </select>
-            </div>
-            { (payrollSearchTerm || payrollFilterStatus !== 'ALL') && (
-              <button 
-                onClick={() => {
-                  setPayrollSearchTerm('');
-                  setPayrollFilterStatus('ALL');
-                }}
-                className="text-xs text-red-600 font-bold hover:text-red-700"
-              >
-                CLEAR FILTERS
-              </button>
-            )}
-          </div>
-        </div>
-
-        <div className="space-y-3">
-          {filteredPayrolls.map((payroll) => (
-            <div key={payroll.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-gray-50 rounded-lg gap-4">
-              <div className="flex flex-col">
-                <span className="font-bold text-gray-900">{payroll.worker?.user?.name || 'Unknown Worker'}</span>
-                <span className="text-xs text-gray-500 uppercase tracking-wider">Payroll ID: #{payroll.id}</span>
+                  View All
+                </button>
               </div>
-              <div className="grid grid-cols-2 sm:flex sm:items-center gap-4 sm:gap-8 text-sm">
-                <div className="flex flex-col">
-                  <span className="text-xs text-gray-400 font-medium uppercase">Base Wage</span>
-                  <span className="text-gray-600">LKR {(payroll.basicWage || 0).toLocaleString()}</span>
+              <div className="space-y-3">
+                {filteredIncomes.slice(0, 5).map(income => (
+                  <div key={income.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                    <div>
+                      <p className="font-bold text-gray-900">{income.factory?.name}</p>
+                      <p className="text-xs text-gray-500">{income.description || 'Monthly delivery'}</p>
+                    </div>
+                    <p className="font-bold text-green-600">LKR {income.netAmount?.toLocaleString()}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Payroll Summary */}
+            <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-bold text-gray-900">Payroll Status</h3>
+                <button
+                  onClick={() => setActiveTab('PAYROLL')}
+                  className="text-sm text-blue-600 hover:underline font-semibold"
+                >
+                  Manage Wages
+                </button>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-4 bg-orange-50 rounded-xl border border-orange-100">
+                  <p className="text-xs font-bold text-orange-600 uppercase mb-1">Pending</p>
+                  <p className="text-xl font-bold text-orange-900">{payrolls.filter(p => p.status === 'PENDING').length} records</p>
                 </div>
-                <div className="flex flex-col">
-                  <span className="text-xs text-green-400 font-medium uppercase">Bonus</span>
-                  <span className="text-green-600">LKR {(payroll.bonuses || 0).toLocaleString()}</span>
+                <div className="p-4 bg-blue-50 rounded-xl border border-blue-100">
+                  <p className="text-xs font-bold text-blue-600 uppercase mb-1">Approved</p>
+                  <p className="text-xl font-bold text-blue-900">{payrolls.filter(p => p.status === 'APPROVED').length} records</p>
                 </div>
-                <div className="flex flex-col">
-                  <span className="text-xs text-red-400 font-medium uppercase">Deductions</span>
-                  <span className="text-red-600">LKR {(payroll.deductions || 0).toLocaleString()}</span>
+                <div className="p-4 bg-green-50 rounded-xl border border-green-100">
+                  <p className="text-xs font-bold text-green-600 uppercase mb-1">Paid</p>
+                  <p className="text-xl font-bold text-green-900">{payrolls.filter(p => p.status === 'PAID').length} records</p>
                 </div>
-                <div className="flex flex-col">
-                  <span className="text-xs text-blue-400 uppercase font-medium">Net Pay</span>
-                  <span className="font-bold text-gray-900">LKR {(payroll.netPay || 0).toLocaleString()}</span>
+                <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                  <p className="text-xs font-bold text-gray-600 uppercase mb-1">Total</p>
+                  <p className="text-xl font-bold text-gray-900">{payrolls.length} records</p>
                 </div>
-                <div className="flex items-center gap-4">
-                  <span className={`text-xs px-2 py-1 rounded-full font-bold ${payroll.status === 'PAID' ? 'bg-green-100 text-green-700' :
-                    payroll.status === 'APPROVED' ? 'bg-blue-100 text-blue-700' :
-                      'bg-orange-100 text-orange-700'
-                    }`}>
-                    {payroll.status}
-                  </span>
-                  <div className="flex items-center gap-1 border-l border-gray-200 pl-4 ml-4">
-                    <button
-                      onClick={() => {
-                        setEditingPayroll(payroll);
-                        setShowEditPayrollModal(true);
-                      }}
-                      className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                      title="Edit Payroll"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDeletePayroll(payroll.id)}
-                      className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                      title="Delete Payroll"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                    {payroll.status !== 'PAID' && (
-                      <button
-                        onClick={() => {
-                          setSelectedPayrollForPayment(payroll);
-                          setShowPaymentModal(true);
-                        }}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-bold rounded-lg transition-all shadow-sm ml-2"
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'PAYROLL' && (
+        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 animate-in slide-in-from-right-4 duration-300">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+            <h3 className="text-xl font-bold text-gray-900">Worker Payroll Management</h3>
+            <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+              <div className="relative flex-1 sm:w-64">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search worker name..."
+                  value={payrollSearchTerm}
+                  onChange={(e) => setPayrollSearchTerm(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                />
+              </div>
+                <button
+                  onClick={() => setShowModal(true)}
+                  className="flex items-center gap-2 px-4 py-2 border border-blue-600 text-blue-600 hover:bg-blue-50 rounded-lg font-bold text-sm shadow-sm transition-all active:scale-95"
+                >
+                  <Plus className="w-4 h-4" />
+                  Generate Individual
+                </button>
+                <button
+                  onClick={handleBulkGeneratePayroll}
+                  disabled={isSubmitting}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-sm shadow-md transition-all active:scale-95 disabled:opacity-50"
+                >
+                  {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                  Generate All
+                </button>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto rounded-xl border border-gray-200">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-gray-50 border-b border-gray-200">
+                  <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase">Worker</th>
+                  <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase text-right">Base Wage</th>
+                  <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase text-right">Bonuses</th>
+                  <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase text-right">Deductions</th>
+                  <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase text-right">Net Pay</th>
+                  <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase">Status</th>
+                  <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase text-center">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {filteredPayrolls.map((payroll) => (
+                  <tr key={payroll.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-4 py-4">
+                      <p className="font-bold text-gray-900">{payroll.worker.user?.name}</p>
+                      <p className="text-xs text-gray-500">ID: #{payroll.worker.id}</p>
+                    </td>
+                    <td className="px-4 py-4 text-right font-medium">LKR {payroll.basicWage?.toLocaleString()}</td>
+                    <td className="px-4 py-4 text-right text-green-600 font-medium">+{payroll.bonuses?.toLocaleString()}</td>
+                    <td className="px-4 py-4 text-right text-red-600 font-medium">-{payroll.deductions?.toLocaleString()}</td>
+                    <td className="px-4 py-4 text-right font-bold text-blue-700 bg-blue-50/30">LKR {payroll.netPay?.toLocaleString()}</td>
+                    <td className="px-4 py-4 text-right">
+                      <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                        payroll.status === 'PAID' ? 'bg-green-100 text-green-700' :
+                        payroll.status === 'APPROVED' ? 'bg-blue-100 text-blue-700' :
+                        payroll.status === 'PENDING' ? 'bg-orange-100 text-orange-700' :
+                        'bg-gray-100 text-gray-700'
+                      }`}>
+                        {payroll.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-4">
+                      <div className="flex justify-center items-center gap-2">
+                        {payroll.status === 'PENDING' && (
+                          <button
+                            onClick={() => handleApprovePayroll(payroll.id)}
+                            disabled={isSubmitting}
+                            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg flex items-center gap-1 text-xs font-bold border border-blue-200 disabled:opacity-50"
+                            title="Approve"
+                          >
+                            {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                            Approve
+                          </button>
+                        )}
+                        {payroll.status === 'APPROVED' && (
+                          <button
+                            onClick={() => handlePay(payroll)}
+                            className="p-1.5 bg-blue-600 text-white hover:bg-blue-700 rounded-lg flex items-center gap-1 text-xs font-bold shadow-sm"
+                            title="Pay Now"
+                          >
+                            <DollarSign className="w-4 h-4" /> Pay
+                          </button>
+                        )}
+                        {payroll.status === 'PAID' && (
+                          <div className="flex flex-col items-center">
+                            <CheckCircle className="w-5 h-5 text-green-600" />
+                            <span className="text-[10px] text-gray-400 font-medium">{payroll.paymentMode || 'N/A'}</span>
+                          </div>
+                        )}
+                        {payroll.status !== 'PAID' && (
+                          <div className="flex gap-1 border-l border-gray-200 pl-2 ml-1">
+                            <button
+                              onClick={() => handleEditPayroll(payroll)}
+                              className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                              title="Edit Adjustments"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDeletePayroll(payroll.id)}
+                              className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                              title="Delete"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'BANK_TRANSFERS' && (
+        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 animate-in slide-in-from-right-4 duration-300">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+            <div>
+              <h3 className="text-xl font-bold text-gray-900">Bank Transfer List</h3>
+              <p className="text-sm text-gray-500">Manage digital payments and export for processing</p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  const pending = payrolls.filter(p => p.status === 'APPROVED' && p.paymentMode === 'BANK');
+                  if (pending.length === 0) return alert('No pending bank transfers to export.');
+                  
+                  const headers = ["Worker Name", "Bank Name", "Branch", "Account Number", "Account Holder", "Net Pay (LKR)"];
+                  const rows = pending.map(p => [
+                    p.worker.user?.name || '',
+                    p.worker.user?.bankName || '',
+                    p.worker.user?.branchName || '',
+                    p.worker.user?.accountNumber || '',
+                    p.worker.user?.accountHolderName || '',
+                    p.netPay.toString()
+                  ]);
+
+                  const csvContent = "data:text/csv;charset=utf-8," 
+                    + headers.join(",") + "\n"
+                    + rows.map(e => e.join(",")).join("\n");
+
+                  const link = document.createElement("a");
+                  link.setAttribute("href", encodeURI(csvContent));
+                  link.setAttribute("download", `Bank_Transfer_List_${selectedMonth}.csv`);
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                }}
+                className="flex items-center gap-2 px-4 py-2 bg-green-50 text-green-700 hover:bg-green-100 rounded-lg font-bold text-sm border border-green-200 transition-colors"
+              >
+                <Download className="w-4 h-4" />
+                Export CSV
+              </button>
+              <button
+                onClick={() => {
+                  const ids = payrolls.filter(p => p.status === 'APPROVED' && p.paymentMode === 'BANK').map(p => p.id);
+                  if (ids.length === 0) return alert('No pending bank transfers found.');
+                  markAllAsPaid(ids);
+                }}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg font-bold text-sm shadow-md transition-all active:scale-95"
+              >
+                <CheckCircle className="w-4 h-4" />
+                Mark All as Paid
+              </button>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto rounded-xl border border-gray-200">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-gray-50 border-b border-gray-200">
+                  <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase">Worker & Status</th>
+                  <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase">Bank Details</th>
+                  <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase text-right">Amount</th>
+                  <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase text-center">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {payrolls.filter(p => (p.status === 'APPROVED' && p.paymentMode === 'BANK') || (p.status === 'PAID' && p.paymentMode === 'BANK')).map((payroll) => (
+                  <tr key={payroll.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-4 py-4">
+                      <p className="font-bold text-gray-900">{payroll.worker.user?.name}</p>
+                      <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase border ${
+                        payroll.status === 'PAID' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-blue-50 text-blue-700 border-blue-200'
+                      }`}>
+                        {payroll.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-4">
+                      <div className="p-3 bg-gray-50/50 rounded-lg border border-gray-100 flex flex-col gap-0.5">
+                        <div className="flex items-center gap-2">
+                          <Landmark className="w-3.5 h-3.5 text-gray-400" />
+                          <p className="text-sm font-bold text-gray-800">{payroll.worker.user?.bankName || 'No Bank Set'}</p>
+                        </div>
+                        <p className="text-xs text-gray-500 ml-5">{payroll.worker.user?.branchName || 'No Branch'}</p>
+                        <div className="mt-2 text-xs font-mono text-blue-600 bg-blue-50 px-2 py-1 rounded inline-block w-fit">
+                           {payroll.worker.user?.accountNumber || 'MISSING ACCOUNT'}
+                        </div>
+                        <p className="text-[10px] text-gray-400 mt-1 uppercase tracking-tighter">Holder: {payroll.worker.user?.accountHolderName || 'N/A'}</p>
+                      </div>
+                    </td>
+                    <td className="px-4 py-4 text-right">
+                      <p className="text-lg font-bold text-gray-900">LKR {payroll.netPay?.toLocaleString()}</p>
+                    </td>
+                    <td className="px-4 py-4 text-center">
+                      {payroll.status === 'APPROVED' ? (
+                        <button
+                          onClick={() => {
+                            setSelectedPayrollForPayment(payroll);
+                            handleConfirmPayment('BANK');
+                          }}
+                          className="px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg font-bold text-xs border border-blue-200 transition-all"
+                        >
+                          Mark Paid
+                        </button>
+                      ) : (
+                        <div className="flex flex-col items-center gap-1">
+                           <CheckCircle className="w-5 h-5 text-green-600" />
+                           <p className="text-[9px] text-gray-400 font-bold uppercase">{new Date(payroll.paidDate || Date.now()).toLocaleDateString()}</p>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+                {payrolls.filter(p => (p.status === 'APPROVED' && p.paymentMode === 'BANK') || (p.status === 'PAID' && p.paymentMode === 'BANK')).length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="px-4 py-12 text-center text-gray-400 font-medium">
+                        No bank transfer records for this period.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'FACTORIES' && (
+        <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-2">
+            <div>
+              <h3 className="text-xl font-bold text-gray-900">Factory Incomes & Management</h3>
+              <p className="text-sm text-gray-500">Manage monthly paysheets and factory registrations</p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowFactoryModal(true)}
+                className="flex items-center gap-2 px-4 py-2 border border-blue-600 text-blue-600 hover:bg-blue-50 rounded-lg font-bold text-sm transition-all"
+              >
+                <Plus className="w-4 h-4" />
+                Register Factory
+              </button>
+              <button
+                onClick={() => {
+                  setEditingIncome(null);
+                  setIncomeFormData({
+                    factoryId: '',
+                    totalWeight: '',
+                    pricePerKg: '',
+                    transportDeduction: '0',
+                    otherDeductions: '0',
+                    month: new Date().getMonth() + 1,
+                    year: new Date().getFullYear(),
+                    description: ''
+                  });
+                  setShowIncomeModal(true);
+                }}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg font-bold text-sm shadow-md transition-all"
+              >
+                <Plus className="w-4 h-4" />
+                Record Paysheet
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 h-fit">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-bold text-gray-900">Monthly Paysheets</h3>
+                <div className="flex items-center gap-2">
+                  <Search className="w-4 h-4 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search factory..."
+                    value={incomeSearchTerm}
+                    onChange={(e) => setIncomeSearchTerm(e.target.value)}
+                    className="w-40 px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
+                {filteredIncomes.map((income) => (
+                  <div key={income.id} className="p-4 bg-gray-50 rounded-xl border border-gray-200 hover:border-blue-300 transition-all group">
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <p className="font-black text-gray-900 text-lg uppercase tracking-tight">{income.factory?.name || 'Unnamed Factory'}</p>
+                        <p className="text-xs text-blue-600 font-bold uppercase tracking-widest">{new Date(0, (income.date?.month || 1) - 1).toLocaleString('default', { month: 'long' })} {income.date?.year}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-black text-green-600 text-xl leading-none">LKR {income.netAmount?.toLocaleString()}</p>
+                        <div className="flex gap-2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
+                            onClick={() => handleEditIncome(income)}
+                            className="p-1 px-2 text-blue-600 hover:bg-blue-100 rounded text-xs font-bold transition-colors border border-blue-200"
+                          >
+                            EDIT
+                          </button>
+                          <button
+                            onClick={() => handleDeleteIncome(income.id)}
+                            className="p-1 px-2 text-red-600 hover:bg-red-100 rounded text-xs font-bold transition-colors border border-red-200"
+                          >
+                            DEL
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-xs border-t border-gray-200 pt-3 mt-1">
+                      <div className="flex justify-between col-span-2 mb-2">
+                        <span className="text-gray-400 font-medium uppercase">Description:</span>
+                        <span className="text-gray-700 font-bold">{income.description || 'Monthly delivery'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-400 font-medium uppercase">Gross Weight:</span>
+                        <span className="text-gray-900 font-bold">{income.totalWeight} kg</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-400 font-medium uppercase">Rate:</span>
+                        <span className="text-gray-900 font-bold">LKR {income.pricePerKg}/kg</span>
+                      </div>
+                      <div className="flex justify-between text-red-500">
+                        <span className="font-medium uppercase">Transport:</span>
+                        <span className="font-bold">-(LKR {income.transportDeduction})</span>
+                      </div>
+                      <div className="flex justify-between text-red-500">
+                        <span className="font-medium uppercase">Deductions:</span>
+                        <span className="font-bold">-(LKR {income.otherDeductions})</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {filteredIncomes.length === 0 && (
+                  <div className="text-center py-12 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
+                    <p className="text-gray-400 font-bold uppercase tracking-wider">No paysheets recorded</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 flex flex-col h-fit">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-bold text-gray-900">Profit Distribution</h3>
+                </div>
+
+                <div className="flex-1 h-[300px] min-h-[300px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={[
+                          { name: 'Labor', value: totalPayroll },
+                          { name: 'Inputs', value: inventoryExpenses },
+                          { name: 'Profit', value: Math.max(0, netProfit) }
+                        ].filter(d => d.value > 0)}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={100}
+                        paddingAngle={5}
+                        dataKey="value"
                       >
-                        <DollarSign className="w-3.5 h-3.5" />
-                        PAY
-                      </button>
-                    )}
+                        <Cell fill="#EF4444" />
+                        <Cell fill="#F97316" />
+                        <Cell fill="#22C55E" />
+                      </Pie>
+                      <RechartsTooltip
+                        formatter={(value: number) => `LKR ${value.toLocaleString()}`}
+                        contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                      />
+                      <Legend verticalAlign="bottom" height={36} iconType="circle" />
+                      <text x="50%" y="45%" textAnchor="middle" dominantBaseline="middle" className="text-xl font-black fill-gray-900">
+                        LKR {totalRevenue.toLocaleString()}
+                      </text>
+                      <text x="50%" y="52%" textAnchor="middle" dominantBaseline="middle" className="text-[10px] font-black fill-gray-400 uppercase tracking-widest">
+                        Total Revenue
+                      </text>
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl shadow-lg p-8 text-white">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="p-3 bg-white/20 rounded-xl">
+                    <TrendingUp className="w-8 h-8" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black uppercase tracking-tight">Financial Health</h3>
+                    <p className="text-blue-100 text-sm">Real-time performance metrics</p>
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <div className="flex justify-between items-end border-b border-white/10 pb-4">
+                    <span className="text-sm font-bold text-blue-200 lowercase tracking-widest italic opacity-75">Operating Margin</span>
+                    <span className="text-3xl font-black">{totalRevenue > 0 ? ((netProfit / totalRevenue) * 100).toFixed(1) : 0}%</span>
+                  </div>
+                  <div className="flex justify-between items-end">
+                    <span className="text-sm font-bold text-blue-200 lowercase tracking-widest italic opacity-75">Labor Cost Ratio</span>
+                    <span className="text-3xl font-black">{totalRevenue > 0 ? ((totalPayroll / totalRevenue) * 100).toFixed(1) : 0}%</span>
                   </div>
                 </div>
               </div>
             </div>
-          ))}
-          {filteredPayrolls.length === 0 && (
-            <div className="text-center py-12">
-              <p className="text-gray-500">No payroll records found for the current filters.</p>
-            </div>
-          )}
+          </div>
         </div>
-      </div>
+      )}
+
 
       {/* Generate Payroll Modal */}
       {showModal && (
@@ -974,6 +1399,10 @@ export function FinancialPage() {
                 <input
                   required
                   type="text"
+                  maxLength={50}
+                  pattern="^[A-Za-z0-9 ]+$"
+                  onInvalid={(e) => (e.target as HTMLInputElement).setCustomValidity('Factory Name can only contain letters, numbers, and spaces.')}
+                  onInput={(e) => (e.target as HTMLInputElement).setCustomValidity('')}
                   value={factoryFormData.name}
                   onChange={(e) => setFactoryFormData({ ...factoryFormData, name: e.target.value })}
                   placeholder="e.g. Bogawantalawa Tea Factory"
@@ -985,6 +1414,10 @@ export function FinancialPage() {
                 <label className="block text-sm font-semibold text-gray-700 mb-1">Registration No</label>
                 <input
                   type="text"
+                  maxLength={20}
+                  pattern="^[A-Za-z0-9\-]+$"
+                  onInvalid={(e) => (e.target as HTMLInputElement).setCustomValidity('Registration No can only contain letters, numbers, and hyphens.')}
+                  onInput={(e) => (e.target as HTMLInputElement).setCustomValidity('')}
                   value={factoryFormData.registerNo}
                   onChange={(e) => setFactoryFormData({ ...factoryFormData, registerNo: e.target.value })}
                   placeholder="e.g. TF-2024-001"
@@ -996,6 +1429,10 @@ export function FinancialPage() {
                 <label className="block text-sm font-semibold text-gray-700 mb-1">Current Price per Kg (LKR)</label>
                 <input
                   type="number"
+                  step="0.01"
+                  min="0"
+                  onInvalid={(e) => (e.target as HTMLInputElement).setCustomValidity('Price must be a positive value.')}
+                  onInput={(e) => (e.target as HTMLInputElement).setCustomValidity('')}
                   value={factoryFormData.pricePerKg}
                   onChange={(e) => setFactoryFormData({ ...factoryFormData, pricePerKg: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
@@ -1061,8 +1498,11 @@ export function FinancialPage() {
                   required
                   type="number"
                   step="0.01"
+                  min="0.01"
+                  onInvalid={(e) => (e.target as HTMLInputElement).setCustomValidity('Weight must be a positive value greater than zero.')}
+                  onInput={(e) => (e.target as HTMLInputElement).setCustomValidity('')}
                   value={deliveryFormData.weight}
-                  onChange={(e) => setDeliveryFormData({ ...deliveryFormData, weight: e.target.value })}
+                  onChange={(e) => setDeliveryFormData({ ...formData, weight: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
                 />
               </div>
@@ -1150,9 +1590,12 @@ export function FinancialPage() {
                     required
                     type="number"
                     step="0.01"
+                    min="0"
+                    readOnly
+                    onInvalid={(e) => (e.target as HTMLInputElement).setCustomValidity('Gross weight must be a non-negative value.')}
+                    onInput={(e) => (e.target as HTMLInputElement).setCustomValidity('')}
                     value={incomeFormData.totalWeight}
-                    onChange={(e) => setIncomeFormData({ ...incomeFormData, totalWeight: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 cursor-not-allowed outline-none text-gray-500 font-medium"
                   />
                 </div>
                 <div>
@@ -1161,6 +1604,9 @@ export function FinancialPage() {
                     required
                     type="number"
                     step="0.01"
+                    min="0"
+                    onInvalid={(e) => (e.target as HTMLInputElement).setCustomValidity('Rate must be a non-negative value.')}
+                    onInput={(e) => (e.target as HTMLInputElement).setCustomValidity('')}
                     value={incomeFormData.pricePerKg}
                     onChange={(e) => setIncomeFormData({ ...incomeFormData, pricePerKg: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
@@ -1171,8 +1617,11 @@ export function FinancialPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1 text-red-500">Transport Cut (LKR)</label>
-                  <input
+                   <input
                     type="number"
+                    min="0"
+                    onInvalid={(e) => (e.target as HTMLInputElement).setCustomValidity('Transport deduction cannot be negative.')}
+                    onInput={(e) => (e.target as HTMLInputElement).setCustomValidity('')}
                     value={incomeFormData.transportDeduction}
                     onChange={(e) => setIncomeFormData({ ...incomeFormData, transportDeduction: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none"
@@ -1180,8 +1629,11 @@ export function FinancialPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1 text-red-500">Other Cutouts (LKR)</label>
-                  <input
+                   <input
                     type="number"
+                    min="0"
+                    onInvalid={(e) => (e.target as HTMLInputElement).setCustomValidity('Other deductions cannot be negative.')}
+                    onInput={(e) => (e.target as HTMLInputElement).setCustomValidity('')}
                     value={incomeFormData.otherDeductions}
                     onChange={(e) => setIncomeFormData({ ...incomeFormData, otherDeductions: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none"
@@ -1208,6 +1660,10 @@ export function FinancialPage() {
                   <label className="block text-sm font-semibold text-gray-700 mb-1">Year</label>
                   <input
                     type="number"
+                    min="2000"
+                    max="2100"
+                    onInvalid={(e) => (e.target as HTMLInputElement).setCustomValidity('Please enter a valid year.')}
+                    onInput={(e) => (e.target as HTMLInputElement).setCustomValidity('')}
                     value={incomeFormData.year}
                     onChange={(e) => setIncomeFormData({ ...incomeFormData, year: parseInt(e.target.value) })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
@@ -1268,6 +1724,9 @@ export function FinancialPage() {
                 <label className="block text-sm font-semibold text-gray-700 mb-1">Bonuses (LKR)</label>
                 <input
                   type="number"
+                  min="0"
+                  onInvalid={(e) => (e.target as HTMLInputElement).setCustomValidity('Bonus cannot be negative.')}
+                  onInput={(e) => (e.target as HTMLInputElement).setCustomValidity('')}
                   value={editingPayroll.bonuses}
                   onChange={(e) => setEditingPayroll({ ...editingPayroll, bonuses: parseFloat(e.target.value) || 0 })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none"
@@ -1278,6 +1737,9 @@ export function FinancialPage() {
                 <label className="block text-sm font-semibold text-gray-700 mb-1">Deductions (LKR)</label>
                 <input
                   type="number"
+                  min="0"
+                  onInvalid={(e) => (e.target as HTMLInputElement).setCustomValidity('Deduction cannot be negative.')}
+                  onInput={(e) => (e.target as HTMLInputElement).setCustomValidity('')}
                   value={editingPayroll.deductions}
                   onChange={(e) => setEditingPayroll({ ...editingPayroll, deductions: parseFloat(e.target.value) || 0 })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none"
@@ -1315,99 +1777,146 @@ export function FinancialPage() {
         </div>
       )}
 
-      {/* Payment Details Modal */}
+
+      {/* Payment Selection Modal */}
       {showPaymentModal && selectedPayrollForPayment && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
-            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-green-50">
-              <h2 className="text-xl font-bold text-green-900">Payment Details</h2>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[60] backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in duration-300">
+            <div className="p-6 text-center border-b border-gray-100 bg-blue-50">
+              <h2 className="text-xl font-bold text-blue-900 mb-1">Select Payment Method</h2>
+              <p className="text-sm text-blue-700">Payment for {selectedPayrollForPayment.worker.user?.name}</p>
+            </div>
+            
+            <div className="p-6 space-y-3">
               <button
-                onClick={() => {
-                  setShowPaymentModal(false);
-                  setSelectedPayrollForPayment(null);
-                }}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+                onClick={() => handleSelectBankTransfer()}
+                className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-white border-2 border-transparent hover:border-blue-600 rounded-xl transition-all group"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="p-2 rounded-lg bg-blue-100 text-blue-600 group-hover:scale-110 transition-transform">
+                    <Landmark className="w-6 h-6" />
+                  </div>
+                  <div className="text-left">
+                    <p className="font-bold text-gray-900">Bank Transfer</p>
+                    <p className="text-xs text-gray-500">Add to Processing List</p>
+                  </div>
+                </div>
+                <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-blue-600" />
+              </button>
+
+              <button
+                onClick={() => handleConfirmPayment('CASH')}
+                className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-white border-2 border-transparent hover:border-green-600 rounded-xl transition-all group"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="p-2 rounded-lg bg-green-100 text-green-600 group-hover:scale-110 transition-transform">
+                    <QrCode className="w-6 h-6" />
+                  </div>
+                  <div className="text-left">
+                    <p className="font-bold text-gray-900">Hand it Over (Cash)</p>
+                    <p className="text-xs text-gray-500">Requires worker QR scan</p>
+                  </div>
+                </div>
+                <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-green-600" />
+              </button>
+            </div>
+
+            <div className="px-6 py-4 bg-gray-50/50 flex justify-end">
+              <button
+                onClick={() => setShowPaymentModal(false)}
+                className="px-4 py-2 text-sm font-semibold text-gray-600 hover:text-gray-900 transition-colors"
+                disabled={isSubmitting}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* QR Scanner Modal */}
+      {showQRScanner && selectedPayrollForPayment && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[70] backdrop-blur-md">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-300">
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-green-50">
+              <div>
+                <h2 className="text-lg font-bold text-green-900">Scan Worker QR</h2>
+                <p className="text-xs text-green-700">Verifying payment for {selectedPayrollForPayment.worker.user?.name}</p>
+              </div>
+              <button
+                onClick={() => setShowQRScanner(false)}
+                className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
                 disabled={isSubmitting}
               >
                 <Plus className="w-6 h-6 rotate-45" />
               </button>
             </div>
 
-            <div className="p-6 space-y-6">
-              <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl border border-gray-100">
-                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center text-green-700 font-bold text-xl">
-                  {(selectedPayrollForPayment.worker.user?.name || 'W').charAt(0)}
-                </div>
-                <div>
-                  <p className="font-bold text-gray-900 text-lg">{selectedPayrollForPayment.worker.user?.name || 'Unnamed Worker'}</p>
-                  <p className="text-xs text-gray-500 font-medium">Payroll ID: #{selectedPayrollForPayment.id}</p>
-                </div>
+            <div className="p-8 flex flex-col items-center">
+              <div id="qr-reader" className="w-full max-w-[300px] border-4 border-green-500 rounded-2xl overflow-hidden shadow-lg relative min-h-[300px] bg-black flex items-center justify-center">
+                  <div className="text-xs text-white absolute top-4 z-10 bg-black/50 px-2 py-1 rounded">Position QR in center</div>
+                  {/* html5-qrcode renderer will mount here */}
               </div>
-
-              <div className="space-y-4">
-                <div className="p-4 bg-blue-50 rounded-xl border border-blue-100">
-                  <h3 className="text-xs font-medium text-blue-400 uppercase tracking-wider mb-2 flex items-center gap-2">
-                    <TrendingUp className="w-3.5 h-3.5" />
-                    Bank Information
-                  </h3>
-                  <p className="text-xs text-blue-700 space-y-1">
-                    <div><span className="font-normal text-blue-400 uppercase mr-2">Bank:</span> {selectedPayrollForPayment.worker.user?.bankName || 'N/A'}</div>
-                    <div><span className="font-normal text-blue-400 uppercase mr-2">Branch:</span> {selectedPayrollForPayment.worker.user?.branchName || 'N/A'}</div>
-                    <div><span className="font-normal text-blue-400 uppercase mr-2">A/C No:</span> <span className="font-mono text-blue-900">{selectedPayrollForPayment.worker.user?.accountNumber || 'N/A'}</span></div>
-                    <div><span className="font-normal text-blue-400 uppercase mr-2">Holder:</span> {selectedPayrollForPayment.worker.user?.accountHolderName || 'N/A'}</div>
-                  </p>
+              
+              {qrError && (
+                <div className="mt-6 p-4 bg-red-50 text-red-700 rounded-xl text-sm font-medium border border-red-100 flex items-center gap-2 animate-bounce">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                  {qrError}
                 </div>
+              )}
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="p-3 bg-gray-50 rounded-lg border border-gray-100">
-                    <p className="text-xs text-gray-400 font-normal uppercase mb-1">Total Payout</p>
-                    <p className="text-lg font-black text-gray-900">LKR {selectedPayrollForPayment.netPay.toLocaleString()}</p>
-                  </div>
-                  <div className="p-3 bg-gray-50 rounded-lg border border-gray-100">
-                    <p className="text-xs text-gray-400 font-normal uppercase mb-1">Status</p>
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${selectedPayrollForPayment.status === 'PAID' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
-                      }`}>
-                      {selectedPayrollForPayment.status}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex gap-3 pt-6 border-t border-gray-100">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowPaymentModal(false);
-                    setSelectedPayrollForPayment(null);
-                  }}
-                  disabled={isSubmitting}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors"
-                >
-                  Close
-                </button>
-                {selectedPayrollForPayment.status !== 'PAID' && (
-                  <button
-                    onClick={() => handlePay(selectedPayrollForPayment)}
-                    disabled={isSubmitting}
-                    className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center justify-center gap-2 shadow-lg shadow-green-100"
-                  >
-                    {isSubmitting ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <>
-                        <CheckCircle className="w-4 h-4" />
-                        Mark as Paid
-                      </>
-                    )}
-                  </button>
-                )}
+              <div className="mt-8 p-4 bg-blue-50 border border-blue-100 rounded-xl flex gap-3 text-left">
+                   <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-1" />
+                   <div>
+                        <p className="text-sm font-bold text-blue-900">Wait for Worker QR</p>
+                        <p className="text-xs text-blue-700 leading-relaxed mt-1">Please ask the worker to show their ID card QR code. Once scanned successfully, the payment will be recorded instantly.</p>
+                   </div>
               </div>
             </div>
+
+            <QRScannerLogic onScanSuccess={handleQRScanSuccess} />
           </div>
         </div>
       )}
     </div>
   );
-  // END
+}
+
+// Separate component for QR Scanner Logic to handle lifecycle correctly
+function QRScannerLogic({ onScanSuccess }: { onScanSuccess: (text: string) => void }) {
+  useEffect(() => {
+    const html5QrCode = new Html5Qrcode("qr-reader");
+    
+    const startScanner = async () => {
+      try {
+        await html5QrCode.start(
+          { facingMode: "environment" }, 
+          { fps: 10, qrbox: { width: 250, height: 250 } },
+          onScanSuccess,
+          () => {} // silence errors to avoid console noise
+        );
+      } catch (err) {
+        console.error("Unable to start scanning:", err);
+      }
+    };
+
+    startScanner();
+
+    return () => {
+      const stopScanner = async () => {
+        try {
+          if (html5QrCode.isScanning) {
+            await html5QrCode.stop();
+          }
+          html5QrCode.clear();
+        } catch (err) {
+          console.error("Failed to stop scanner:", err);
+        }
+      };
+      stopScanner();
+    };
+  }, [onScanSuccess]);
+
+  return null;
 }
 

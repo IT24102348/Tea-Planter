@@ -18,4 +18,8 @@ public interface PayrollRepository extends JpaRepository<Payroll, Long> {
     List<Payroll> findByPlantation(online.jayashan.teaplanter.entity.Plantation plantation);
 
     List<Payroll> findByWorkerAndPlantation(Worker worker, online.jayashan.teaplanter.entity.Plantation plantation);
+    
+    boolean existsByWorkerAndMonth(Worker worker, java.time.LocalDate month);
+    
+    java.util.Optional<Payroll> findByWorkerAndMonth(Worker worker, java.time.LocalDate month);
 }
