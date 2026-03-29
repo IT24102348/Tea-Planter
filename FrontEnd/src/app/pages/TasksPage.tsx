@@ -90,8 +90,10 @@ export function TasksPage() {
         }
     }, [selectedMonth, isLoaded]);
 
-    const handleAssignTask = async (e: React.FormEvent) => {
+    const handleAssignTask = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        if (!e.currentTarget.reportValidity()) return;
+        
         if (!assignFormData.workerId || !assignFormData.taskCategory) {
             alert('Please select a worker and a task category');
             return;
@@ -223,8 +225,10 @@ export function TasksPage() {
         }
     };
 
-    const handleSaveRate = async (e: React.FormEvent) => {
+    const handleSaveRate = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        if (!e.currentTarget.reportValidity()) return;
+
         setIsSubmitting(true);
         try {
             const token = await getToken();
@@ -552,6 +556,10 @@ export function TasksPage() {
                                     required
                                     type="text"
                                     placeholder="e.g. Pruning Block A"
+                                    maxLength={50}
+                                    pattern="^[A-Za-z0-9 \-]+$"
+                                    onInvalid={(e) => (e.target as HTMLInputElement).setCustomValidity('Title can only contain letters, numbers, and hyphens.')}
+                                    onInput={(e) => (e.target as HTMLInputElement).setCustomValidity('')}
                                     value={assignFormData.title}
                                     onChange={(e) => setAssignFormData({ ...assignFormData, title: e.target.value })}
                                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
@@ -578,6 +586,7 @@ export function TasksPage() {
                                 <input
                                     required
                                     type="date"
+                                    min={new Date().toISOString().split('T')[0]}
                                     value={assignFormData.taskDate}
                                     onChange={(e) => setAssignFormData({ ...assignFormData, taskDate: e.target.value })}
                                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
@@ -587,6 +596,7 @@ export function TasksPage() {
                             <div>
                                 <label className="block text-sm font-semibold text-gray-700 mb-1 text-left">Description</label>
                                 <textarea
+                                    maxLength={200}
                                     value={assignFormData.description}
                                     onChange={(e) => setAssignFormData({ ...assignFormData, description: e.target.value })}
                                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none h-32 resize-none"
@@ -608,13 +618,14 @@ export function TasksPage() {
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-1 text-left">Plot / Block</label>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-1 text-left">Plot / Block *</label>
                                     <select
+                                        required
                                         value={assignFormData.plotId}
                                         onChange={(e) => setAssignFormData({ ...assignFormData, plotId: e.target.value })}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
                                     >
-                                        <option value="">General / No Block</option>
+                                        <option value="">Select Plot / Block</option>
                                         {plots.map(plot => (
                                             <option key={plot.id} value={plot.blockId}>{plot.blockId}</option>
                                         ))}
@@ -675,6 +686,10 @@ export function TasksPage() {
                                         required
                                         type="text"
                                         placeholder="e.g. PRUNING"
+                                        maxLength={20}
+                                        pattern="^[A-Za-z0-9 ]+$"
+                                        onInvalid={(e) => (e.target as HTMLInputElement).setCustomValidity('Task Name can only contain letters and numbers, max length 20.')}
+                                        onInput={(e) => (e.target as HTMLInputElement).setCustomValidity('')}
                                         value={rateFormData.category}
                                         onChange={(e) => setRateFormData({ ...rateFormData, category: e.target.value.toUpperCase() })}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none uppercase"
@@ -687,6 +702,9 @@ export function TasksPage() {
                                             required
                                             type="number"
                                             placeholder="e.g. 50"
+                                            min="0"
+                                            onInvalid={(e) => (e.target as HTMLInputElement).setCustomValidity('Rate must be a positive number.')}
+                                            onInput={(e) => (e.target as HTMLInputElement).setCustomValidity('')}
                                             value={rateFormData.rate}
                                             onChange={(e) => setRateFormData({ ...rateFormData, rate: e.target.value })}
                                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
@@ -709,6 +727,7 @@ export function TasksPage() {
                                     <textarea
                                         rows={2}
                                         placeholder="Add task details..."
+                                        maxLength={100}
                                         value={rateFormData.description}
                                         onChange={(e) => setRateFormData({ ...rateFormData, description: e.target.value })}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
