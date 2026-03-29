@@ -653,8 +653,10 @@ function PersonalProfile() {
     fetchProfile();
   }, [user?.id]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!e.currentTarget.reportValidity()) return;
+
     setLoading(true);
     setError(null);
     setSuccess(false);
@@ -692,11 +694,16 @@ function PersonalProfile() {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1 text-left">Phone Number</label>
             <input
+              required
               type="tel"
+              pattern="\d{10}"
+              maxLength={10}
+              onInvalid={(e) => (e.target as HTMLInputElement).setCustomValidity('Phone number must be exactly 10 digits.')}
+              onInput={(e) => (e.target as HTMLInputElement).setCustomValidity('')}
               value={profileData.phone}
-              onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
-              placeholder="e.g. 071 234 5678"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              onChange={(e) => setProfileData({ ...profileData, phone: e.target.value.replace(/\D/g, '') })}
+              placeholder="e.g. 0712345678"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
             />
           </div>
           <div>
@@ -714,10 +721,14 @@ function PersonalProfile() {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1 text-left">Birthday</label>
             <input
+              required
               type="date"
+              max={new Date().toISOString().split('T')[0]}
+              onInvalid={(e) => (e.target as HTMLInputElement).setCustomValidity('Please select a valid past date.')}
+              onInput={(e) => (e.target as HTMLInputElement).setCustomValidity('')}
               value={profileData.birthday}
               onChange={(e) => setProfileData({ ...profileData, birthday: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
             />
           </div>
         </div>
@@ -726,41 +737,62 @@ function PersonalProfile() {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1 text-left">Bank Name</label>
             <input
+              required
               type="text"
+              maxLength={50}
+              pattern="^[A-Za-z0-9 ]+$"
+              onInvalid={(e) => (e.target as HTMLInputElement).setCustomValidity('Bank Name can only contain letters, numbers, and spaces.')}
+              onInput={(e) => (e.target as HTMLInputElement).setCustomValidity('')}
               value={profileData.bankName}
               onChange={(e) => setProfileData({ ...profileData, bankName: e.target.value })}
               placeholder="e.g. Bank of Ceylon"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
             />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1 text-left">Branch Name</label>
             <input
+              required
               type="text"
+              maxLength={50}
+              pattern="^[A-Za-z0-9 ]+$"
+              onInvalid={(e) => (e.target as HTMLInputElement).setCustomValidity('Branch Name can only contain letters, numbers, and spaces.')}
+              onInput={(e) => (e.target as HTMLInputElement).setCustomValidity('')}
               value={profileData.branchName}
               onChange={(e) => setProfileData({ ...profileData, branchName: e.target.value })}
               placeholder="e.g. Colombo Fort"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
             />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1 text-left">Account Number</label>
             <input
+              required
               type="text"
+              pattern="\d+"
+              minLength={8}
+              maxLength={20}
+              onInvalid={(e) => (e.target as HTMLInputElement).setCustomValidity('Account number must be numeric (8-20 digits).')}
+              onInput={(e) => (e.target as HTMLInputElement).setCustomValidity('')}
               value={profileData.accountNumber}
-              onChange={(e) => setProfileData({ ...profileData, accountNumber: e.target.value })}
+              onChange={(e) => setProfileData({ ...profileData, accountNumber: e.target.value.replace(/\D/g, '') })}
               placeholder="e.g. 123456789"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
             />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1 text-left">Account Holder Name</label>
             <input
+              required
               type="text"
+              maxLength={100}
+              pattern="^[A-Za-z0-9 ]+$"
+              onInvalid={(e) => (e.target as HTMLInputElement).setCustomValidity('Account Holder Name can only contain letters, numbers, and spaces.')}
+              onInput={(e) => (e.target as HTMLInputElement).setCustomValidity('')}
               value={profileData.accountHolderName}
               onChange={(e) => setProfileData({ ...profileData, accountHolderName: e.target.value })}
               placeholder="e.g. J. Doe"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
             />
           </div>
         </div>
@@ -768,11 +800,13 @@ function PersonalProfile() {
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1 text-left">Emergency Contact</label>
           <input
+            required
             type="text"
+            maxLength={200}
             value={profileData.emergencyContact}
             onChange={(e) => setProfileData({ ...profileData, emergencyContact: e.target.value })}
             placeholder="Name / Relationship / Phone"
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
           />
         </div>
 
