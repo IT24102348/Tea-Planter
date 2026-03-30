@@ -621,7 +621,6 @@ export function WorkforcePage() {
                   </thead>
                   <tbody>
                     {availableUsers
-                      .filter(u => !(u.roles || []).includes('OWNER'))
                       .filter(u =>
                         (u.name || '').toLowerCase().includes(userSearchTerm.toLowerCase()) ||
                         (u.email || '').toLowerCase().includes(userSearchTerm.toLowerCase())
@@ -777,7 +776,6 @@ export function WorkforcePage() {
                     >
                       <option value="">Select a member...</option>
                       {availableUsers
-                        .filter(u => !(u.roles || []).includes('OWNER'))
                         .filter(u =>
                           (u.name || '').toLowerCase().includes(userSearchTerm.toLowerCase()) ||
                           (u.email || '').toLowerCase().includes(userSearchTerm.toLowerCase())
