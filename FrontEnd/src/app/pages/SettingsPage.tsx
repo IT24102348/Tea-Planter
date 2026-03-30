@@ -364,6 +364,7 @@ function PlantationForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [step, setStep] = useState<'INITIAL' | 'PIN' | 'FORM'>('INITIAL');
   const [formData, setFormData] = useState({
     name: '',
     location: '',
@@ -396,7 +397,6 @@ function PlantationForm() {
       );
 
       setSuccess(true);
-      // Force reload to update metadata/role
       window.location.reload();
     } catch (err: any) {
       setError(err.message || 'Failed to create plantation');
@@ -405,16 +405,48 @@ function PlantationForm() {
     }
   };
 
-  return (
-    <div className="bg-green-50 border border-green-200 rounded-lg p-6">
-      <div className="flex items-center gap-3 mb-4">
-        <div className="p-2 rounded-lg bg-green-100">
-          <Sprout className="w-5 h-5 text-green-700" />
+  if (step === 'INITIAL') {
+    return (
+      <div className="bg-green-50 border border-green-200 rounded-lg p-8 flex flex-col items-center text-center space-y-4">
+        <div className="p-3 rounded-2xl bg-green-100">
+          <Sprout className="w-10 h-10 text-green-700" />
         </div>
         <div>
-          <h3 className="font-semibold text-gray-900 text-left">Become an Owner</h3>
-          <p className="text-sm text-gray-600 text-left">Create your plantation to start managing your own tea estate</p>
+          <h3 className="text-xl font-bold text-gray-900">Become an Owner</h3>
+          <p className="text-gray-600 max-w-md">Register your tea plantation to start managing your own workforce, finances, and factory deliveries.</p>
         </div>
+        <button
+          onClick={() => setStep('PIN')}
+          className="px-8 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold transition-all shadow-lg hover:shadow-green-200"
+        >
+          Begin Registration
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-green-50 border border-green-200 rounded-lg p-6">
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-green-100">
+            <Sprout className="w-5 h-5 text-green-700" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-gray-900 text-left">
+              {step === 'PIN' ? 'Verify Authority' : 'Estate Registration'}
+            </h3>
+            <p className="text-sm text-gray-600 text-left">
+              {step === 'PIN' ? 'Enter administrative PIN to proceed' : 'Fill in your plantation details'}
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={() => setStep(step === 'PIN' ? 'INITIAL' : 'PIN')}
+          className="text-sm font-bold text-gray-500 hover:text-gray-700"
+        >
+          Back
+        </button>
       </div>
 
       {success ? (
@@ -422,110 +454,122 @@ function PlantationForm() {
           Plantation created successfully! Redirecting...
         </div>
       ) : (
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={step === 'PIN' ? (e) => { e.preventDefault(); setStep('FORM'); } : handleSubmit} className="space-y-4">
           {error && (
             <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative text-left">
               {error}
             </div>
           )}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1 text-left">Plantation Name</label>
-              <input
-                type="text"
-                required
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="e.g., Summit Tea Estate"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1 text-left">Location</label>
-              <input
-                type="text"
-                required
-                value={formData.location}
-                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                placeholder="e.g., Nuwara Eliya"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1 text-left">Total Area (Acreage)</label>
-              <input
-                type="number"
-                step="0.1"
-                required
-                value={formData.totalArea}
-                onChange={(e) => setFormData({ ...formData, totalArea: e.target.value })}
-                placeholder="e.g., 50.5"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1 text-left">Latitude</label>
-                <input
-                  type="number"
-                  step="0.000001"
-                  value={formData.latitude}
-                  onChange={(e) => setFormData({ ...formData, latitude: e.target.value })}
-                  placeholder="6.9271"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1 text-left">Longitude</label>
-                <input
-                  type="number"
-                  step="0.000001"
-                  value={formData.longitude}
-                  onChange={(e) => setFormData({ ...formData, longitude: e.target.value })}
-                  placeholder="79.8612"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-                />
-              </div>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1 text-left">Harvesting Rate (LKR/kg)</label>
-              <input
-                type="number"
-                step="0.01"
-                value={formData.harvestingRate}
-                onChange={(e) => setFormData({ ...formData, harvestingRate: e.target.value })}
-                placeholder="e.g. 50.00"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1 text-left">Administrative PIN (Obtain from Admin)</label>
+
+          {step === 'PIN' ? (
+            <div className="space-y-4 max-w-sm mx-auto py-4">
+              <label className="block text-sm font-bold text-gray-700 mb-1 text-center italic">Administrative PIN Required</label>
               <input
                 type="password"
                 required
+                autoFocus
                 value={formData.creationPin}
                 onChange={(e) => setFormData({ ...formData, creationPin: e.target.value })}
                 placeholder="Enter 6-digit creation PIN"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 outline-none text-center text-xl tracking-[0.5em]"
               />
+              <button
+                type="submit"
+                className="w-full py-3 bg-gray-900 text-white rounded-xl font-bold hover:bg-black transition-colors"
+              >
+                Verify PIN
+              </button>
             </div>
-          </div>
-          <button
-            type="submit"
-            disabled={loading}
-            className={`w-full py-2 px-4 rounded-lg font-bold text-white transition-all ${loading ? 'bg-gray-400' : 'bg-green-600 hover:bg-green-700'
-              }`}
-          >
-            {loading ? 'Creating...' : 'Create Plantation & Become Owner'}
-          </button>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1 text-left">Plantation Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="e.g., Summit Tea Estate"
+                    className="w-full px-4 py-2 border border-blue-100 bg-white rounded-lg focus:ring-2 focus:ring-green-500 outline-none transition-all"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1 text-left">Location</label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.location}
+                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                    placeholder="e.g., Nuwara Eliya"
+                    className="w-full px-4 py-2 border border-blue-100 bg-white rounded-lg focus:ring-2 focus:ring-green-500 outline-none transition-all"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1 text-left">Total Area (Acreage)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    required
+                    value={formData.totalArea}
+                    onChange={(e) => setFormData({ ...formData, totalArea: e.target.value })}
+                    placeholder="e.g., 50.5"
+                    className="w-full px-4 py-2 border border-blue-100 bg-white rounded-lg focus:ring-2 focus:ring-green-500 outline-none transition-all"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1 text-left">Latitude</label>
+                    <input
+                      type="number"
+                      step="0.000001"
+                      value={formData.latitude}
+                      onChange={(e) => setFormData({ ...formData, latitude: e.target.value })}
+                      placeholder="6.9271"
+                      className="w-full px-4 py-2 border border-blue-100 bg-white rounded-lg focus:ring-2 focus:ring-green-500 outline-none transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1 text-left">Longitude</label>
+                    <input
+                      type="number"
+                      step="0.000001"
+                      value={formData.longitude}
+                      onChange={(e) => setFormData({ ...formData, longitude: e.target.value })}
+                      placeholder="79.8612"
+                      className="w-full px-4 py-2 border border-blue-100 bg-white rounded-lg focus:ring-2 focus:ring-green-500 outline-none transition-all"
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1 text-left">Harvesting Rate (LKR/kg)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={formData.harvestingRate}
+                    onChange={(e) => setFormData({ ...formData, harvestingRate: e.target.value })}
+                    placeholder="e.g. 50.00"
+                    className="w-full px-4 py-2 border border-blue-100 bg-white rounded-lg focus:ring-2 focus:ring-green-500 outline-none transition-all"
+                  />
+                </div>
+              </div>
+              <button
+                type="submit"
+                disabled={loading}
+                className={`w-full py-3 px-4 rounded-xl font-bold text-white transition-all shadow-lg ${loading ? 'bg-gray-400' : 'bg-green-600 hover:bg-green-700 hover:shadow-green-200'
+                  }`}
+              >
+                {loading ? 'Creating Estate...' : 'Complete Registration'}
+              </button>
+            </>
+          )}
         </form>
-      )
-      }
-    </div >
+      )}
+    </div>
   );
 }
 
