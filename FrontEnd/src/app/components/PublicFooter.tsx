@@ -47,8 +47,8 @@ export function PublicFooter() {
                 {/* Brand & Feedback Form (Span 5) */}
                 <div className="lg:col-span-5 flex flex-col text-left">
                     <div className="flex items-center gap-3 mb-8">
-                        <div className="p-2 bg-[#C8FF4C] rounded-xl shadow-lg shadow-[#C8FF4C]/20">
-                            <Leaf className="w-6 h-6 text-black" />
+                        <div className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center bg-white/10 p-1">
+                            <img src="/src/app/assets/logo.png" alt="Tea Planter Logo" className="w-full h-full object-contain" />
                         </div>
                         <span className="text-2xl font-bold tracking-tight text-white">Tea Planter</span>
                     </div>

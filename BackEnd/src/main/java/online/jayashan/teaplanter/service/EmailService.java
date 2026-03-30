@@ -14,11 +14,13 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
+import java.io.File;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.springframework.core.io.FileSystemResource;
 
 @Service
 @RequiredArgsConstructor
@@ -59,6 +61,12 @@ public class EmailService {
             helper.setTo(to);
             helper.setSubject(subject);
             helper.setText(buildEnhancedHtmlContent(payroll, attendance, tasks, harvests), true);
+            
+            // Add inline logo
+            FileSystemResource logo = new FileSystemResource(new File("D:\\Projects\\Tea-Planter\\Pics\\TeaPlanterLogo3.png"));
+            if (logo.exists()) {
+                helper.addInline("logo", logo);
+            }
 
             mailSender.send(message);
         } catch (MessagingException e) {
@@ -88,8 +96,9 @@ public class EmailService {
         
         // Header
         content.append("<div style='background-color: #f9fbf9; padding: 40px 30px; text-align: center; border-bottom: 1px solid #eee;'>");
-        content.append("<h1 style='margin: 0; font-size: 24px; font-weight: 600; color: #2e7d32; text-transform: uppercase; letter-spacing: 2px;'>Tea Planter</h1>");
-        content.append("<p style='margin: 10px 0 0 0; color: #666; font-size: 14px; font-weight: 500;'>Monthly Paysheet Summary</p>");
+        content.append("<img src='cid:logo' alt='Tea Planter' style='height: 80px; width: auto; margin-bottom: 15px;'>");
+        content.append("<h1 style='margin: 0; font-size: 20px; font-weight: 600; color: #2e7d32; text-transform: uppercase; letter-spacing: 2px;'>Tea Planter</h1>");
+        content.append("<p style='margin: 5px 0 0 0; color: #666; font-size: 13px; font-weight: 500;'>Monthly Paysheet Summary</p>");
         content.append("</div>");
 
         // Welcome

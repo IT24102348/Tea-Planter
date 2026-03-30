@@ -73,10 +73,10 @@ export function Sidebar() {
       <div className="h-16 border-b border-gray-200 flex items-center justify-between px-4">
         {!collapsed && (
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
-              <Leaf className="w-5 h-5 text-white" />
+            <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center p-0.5 border border-gray-100 shadow-sm">
+              <img src="/src/app/assets/logo.png" alt="Logo" className="w-full h-full object-contain" />
             </div>
-            <span className="font-semibold text-gray-900">Tea Planter</span>
+            <span className="font-bold text-gray-900">Tea Planter</span>
           </div>
         )}
         <button

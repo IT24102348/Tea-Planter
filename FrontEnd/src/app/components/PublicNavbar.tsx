@@ -26,8 +26,8 @@ export function PublicNavbar() {
             <nav className="bg-black/90 backdrop-blur-xl rounded-full px-4 py-2 flex items-center justify-between md:gap-8 shadow-2xl border border-white/10 relative">
                 {/* Logo Pill */}
                 <Link to="/" className="flex items-center gap-2 group cursor-pointer pr-4 md:pr-0 border-r border-white/20 md:border-0 pl-2 text-decoration-none">
-                    <div className="p-1.5 bg-[#C8FF4C] rounded-full">
-                        <Leaf className="w-4 h-4 text-black" />
+                    <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center bg-white/10 p-0.5">
+                        <img src="/src/app/assets/logo.png" alt="Tea Planter Logo" className="w-full h-full object-contain" />
                     </div>
                     <span className="text-white font-bold hidden sm:inline">Tea Planter</span>
                 </Link>
