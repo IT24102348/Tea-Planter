@@ -124,7 +124,7 @@ export function WorkforcePage() {
       const token = await getToken();
       const [workerData, userData, plotData] = await Promise.all([
         api.getWorkers(plantationId, token || undefined),
-        api.getAvailableUsers(token || undefined),
+        api.getAvailableUsers(plantationId, token || undefined),
         api.getPlots(plantationId, token || undefined).catch(() => [])
       ]);
 
@@ -621,6 +621,7 @@ export function WorkforcePage() {
                   </thead>
                   <tbody>
                     {availableUsers
+                      .filter(u => !(u.roles || []).includes('OWNER'))
                       .filter(u =>
                         (u.name || '').toLowerCase().includes(userSearchTerm.toLowerCase()) ||
                         (u.email || '').toLowerCase().includes(userSearchTerm.toLowerCase())
@@ -776,6 +777,7 @@ export function WorkforcePage() {
                     >
                       <option value="">Select a member...</option>
                       {availableUsers
+                        .filter(u => !(u.roles || []).includes('OWNER'))
                         .filter(u =>
                           (u.name || '').toLowerCase().includes(userSearchTerm.toLowerCase()) ||
                           (u.email || '').toLowerCase().includes(userSearchTerm.toLowerCase())

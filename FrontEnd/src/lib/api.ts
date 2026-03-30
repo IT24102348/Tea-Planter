@@ -47,7 +47,7 @@ export const api = {
             headers: getHeaders(token)
         }).then(handleResponse),
 
-    getAvailableUsers: (token?: string) => fetch(`${API_BASE_URL}/workforce/users/available`, {
+    getAvailableUsers: (plantationId: number, token?: string) => fetch(`${API_BASE_URL}/workforce/users/available?plantationId=${plantationId}`, {
         headers: getHeaders(token)
     }).then(handleResponse),
     updateWorker: (id: string | number, data: any, token?: string) => fetch(`${API_BASE_URL}/workforce/workers/${id}`, {

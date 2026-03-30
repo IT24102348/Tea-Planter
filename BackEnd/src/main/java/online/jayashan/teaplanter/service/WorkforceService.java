@@ -124,6 +124,11 @@ public class WorkforceService {
             throw new RuntimeException("User already assigned to this plantation");
         }
 
+        // Prevent Owners from being assigned as workers
+        if (user.getRoles().contains(online.jayashan.teaplanter.entity.Role.OWNER)) {
+            throw new RuntimeException("Plantation owners cannot be assigned as field workers.");
+        }
+
         Worker worker = Worker.builder()
                 .user(user)
                 .plantation(plantation)
@@ -147,7 +152,7 @@ public class WorkforceService {
             clerkService.updateUserMetadata(user.getClerkId(), "worker", plantationId);
         }
 
-        if (user.getPlantation() == null || !user.getPlantation().getId().equals(plantationId)) {
+        if (user.getPlantation() == null) {
             user.setPlantation(plantation);
             changed = true;
         }
@@ -159,8 +164,8 @@ public class WorkforceService {
         return workerRepository.save(worker);
     }
 
-    public List<online.jayashan.teaplanter.entity.User> getAvailableUsers() {
-        return userService.getAvailableUsers();
+    public List<online.jayashan.teaplanter.entity.User> getAvailableUsers(Long plantationId) {
+        return userService.getAvailableUsers(plantationId);
     }
 
     public List<Worker> getAllWorkers(Long plantationId) {

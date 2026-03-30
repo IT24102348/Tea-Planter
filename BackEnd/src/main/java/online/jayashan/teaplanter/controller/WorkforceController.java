@@ -25,8 +25,8 @@ public class WorkforceController {
     }
 
     @GetMapping("/users/available")
-    public List<online.jayashan.teaplanter.entity.User> getAvailableUsers() {
-        return workforceService.getAvailableUsers();
+    public List<online.jayashan.teaplanter.entity.User> getAvailableUsers(@RequestParam Long plantationId) {
+        return workforceService.getAvailableUsers(plantationId);
     }
 
     @GetMapping("/workers")
