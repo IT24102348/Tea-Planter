@@ -28,6 +28,11 @@ public class FinancialService {
                 Worker worker = workerRepository.findById(payroll.getWorker().getId())
                                 .orElseThrow(() -> new RuntimeException("Worker not found"));
 
+                // Validation: One record per employee per month
+                if (payrollRepository.existsByWorkerAndMonth(worker, payroll.getMonth().withDayOfMonth(1))) {
+                        throw new IllegalStateException("A payroll record already exists for " + worker.getUser().getName() + " for this month.");
+                }
+
                 return calculateAndSavePayroll(worker, payroll.getMonth(), payroll);
         }
 

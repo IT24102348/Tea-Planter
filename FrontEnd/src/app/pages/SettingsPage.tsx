@@ -137,28 +137,6 @@ export function SettingsPage() {
         </div>
       </div>
 
-      {/* Security */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="p-2 rounded-lg bg-red-100">
-            <Shield className="w-5 h-5 text-red-700" />
-          </div>
-          <div>
-            <h3 className="font-semibold text-gray-900">Security</h3>
-            <p className="text-sm text-gray-600">Your security settings are managed by Google & Clerk</p>
-          </div>
-        </div>
-
-        <a
-          href="https://accounts.clerk.com/user"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-block px-4 py-2 bg-gray-900 text-white rounded-lg font-medium hover:bg-black transition-colors"
-        >
-          Manage Account Security
-        </a>
-      </div>
-
       {/* Security PIN Settings */}
       <PinSettings />
 
@@ -392,7 +370,8 @@ function PlantationForm() {
     totalArea: '',
     latitude: '',
     longitude: '',
-    harvestingRate: ''
+    harvestingRate: '',
+    creationPin: ''
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -412,6 +391,7 @@ function PlantationForm() {
           harvestingRate: formData.harvestingRate ? parseFloat(formData.harvestingRate) : null
         },
         user?.id || '',
+        formData.creationPin,
         token || undefined
       );
 
@@ -519,6 +499,17 @@ function PlantationForm() {
                 value={formData.harvestingRate}
                 onChange={(e) => setFormData({ ...formData, harvestingRate: e.target.value })}
                 placeholder="e.g. 50.00"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1 text-left">Administrative PIN (Obtain from Admin)</label>
+              <input
+                type="password"
+                required
+                value={formData.creationPin}
+                onChange={(e) => setFormData({ ...formData, creationPin: e.target.value })}
+                placeholder="Enter 6-digit creation PIN"
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
               />
             </div>

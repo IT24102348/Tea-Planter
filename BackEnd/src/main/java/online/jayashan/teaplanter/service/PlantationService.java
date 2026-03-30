@@ -6,6 +6,7 @@ import online.jayashan.teaplanter.entity.Role;
 import online.jayashan.teaplanter.entity.User;
 import online.jayashan.teaplanter.repository.PlantationRepository;
 import online.jayashan.teaplanter.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,9 +19,16 @@ public class PlantationService {
     private final PlantationRepository plantationRepository;
     private final UserRepository userRepository;
     private final ClerkService clerkService;
+    
+    @Value("${PLANTATION_CREATION_PIN}")
+    private String requiredCreationPin;
 
     @Transactional
-    public Plantation createPlantation(Plantation plantation, String clerkId) {
+    public Plantation createPlantation(Plantation plantation, String clerkId, String creationPin) {
+        if (requiredCreationPin != null && !requiredCreationPin.equals(creationPin)) {
+            throw new RuntimeException("Invalid Administrative PIN. Contact system administrator.");
+        }
+        
         User user = userRepository.findByClerkId(clerkId)
                 .orElseThrow(() -> new RuntimeException("User not found: " + clerkId));
 

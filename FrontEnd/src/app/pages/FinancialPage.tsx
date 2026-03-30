@@ -288,6 +288,7 @@ export function FinancialPage() {
 
   const handleDeleteIncome = async (id: number) => {
     if (!confirm('Are you sure you want to delete this factory paysheet?')) return;
+    setIsSubmitting(true);
     try {
       const token = await getToken();
       await api.deleteIncome(id, token || undefined);
@@ -296,6 +297,8 @@ export function FinancialPage() {
     } catch (error) {
       console.error('Failed to delete income:', error);
       alert('Failed to delete income record.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -425,6 +428,7 @@ export function FinancialPage() {
 
   const handleDeletePayroll = async (id: number) => {
     if (!confirm('Are you sure you want to delete this payroll record?')) return;
+    setIsSubmitting(true);
     try {
       const token = await getToken();
       await api.deletePayroll(id, token || undefined);
@@ -433,6 +437,8 @@ export function FinancialPage() {
     } catch (error) {
       console.error('Failed to delete payroll:', error);
       alert('Failed to delete payroll record.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -973,10 +979,12 @@ export function FinancialPage() {
                         {payroll.status === 'APPROVED' && (
                           <button
                             onClick={() => handlePay(payroll)}
-                            className="p-1.5 bg-blue-600 text-white hover:bg-blue-700 rounded-lg flex items-center gap-1 text-xs font-bold shadow-sm"
+                            disabled={isSubmitting}
+                            className="p-1.5 bg-blue-600 text-white hover:bg-blue-700 rounded-lg flex items-center gap-1 text-xs font-bold shadow-sm disabled:opacity-50"
                             title="Pay Now"
                           >
-                            <DollarSign className="w-4 h-4" /> Pay
+                            {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <DollarSign className="w-4 h-4" />}
+                            Pay
                           </button>
                         )}
                         {payroll.status === 'PAID' && (
@@ -995,12 +1003,13 @@ export function FinancialPage() {
                               <Edit2 className="w-4 h-4" />
                             </button>
                             <button
-                              onClick={() => handleDeletePayroll(payroll.id)}
-                              className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                              title="Delete"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                               onClick={() => handleDeletePayroll(payroll.id)}
+                               disabled={isSubmitting}
+                               className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                               title="Delete"
+                             >
+                               {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                             </button>
                           </div>
                         )}
                       </div>
@@ -1111,26 +1120,29 @@ export function FinancialPage() {
                               setSelectedPayrollForPayment(payroll);
                               handleConfirmPayment('BANK');
                             }}
-                            className="px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg font-bold text-xs border border-blue-200 transition-all"
+                            disabled={isSubmitting}
+                            className="px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg font-bold text-xs border border-blue-200 transition-all disabled:opacity-50"
                           >
-                            Mark Paid
+                            {isSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Mark Paid'}
                           </button>
                           <div className="flex gap-1 border-l border-gray-200 pl-2">
-                            <button
-                               onClick={() => handleEditPayroll(payroll)}
-                               className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                               title="Edit"
-                            >
-                               <Edit2 className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                               onClick={() => handleDeletePayroll(payroll.id)}
-                               className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                               title="Delete"
-                            >
-                               <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
+                             <button
+                                onClick={() => handleEditPayroll(payroll)}
+                                disabled={isSubmitting}
+                                className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50"
+                                title="Edit"
+                             >
+                                {isSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Edit2 className="w-3.5 h-3.5" />}
+                             </button>
+                             <button
+                                onClick={() => handleDeletePayroll(payroll.id)}
+                                disabled={isSubmitting}
+                                className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                                title="Delete"
+                             >
+                                {isSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                             </button>
+                            </div>
                         </div>
                       ) : (
                         <div className="flex flex-col items-center gap-1">
@@ -1316,7 +1328,18 @@ export function FinancialPage() {
                 />
               </div>
 
-              {isPreviewLoading ? (
+              {payrolls.some(p => p.worker.id.toString() === formData.workerId && p.month.startsWith(formData.month)) ? (
+                <div className="p-4 bg-amber-50 rounded-xl border border-amber-100 flex gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                  <AlertCircle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-bold text-amber-900">Record Already Exists</p>
+                    <p className="text-xs text-amber-700 leading-relaxed mt-1">
+                      A payroll record for this worker already exists for the selected month. 
+                      Please <strong>Edit</strong> the existing record instead of creating a new one.
+                    </p>
+                  </div>
+                </div>
+              ) : isPreviewLoading ? (
                 <div className="py-4 flex flex-col items-center justify-center gap-2 text-blue-600">
                   <Loader2 className="w-6 h-6 animate-spin" />
                   <span className="text-xs font-medium">Calculating earnings...</span>
@@ -1374,7 +1397,7 @@ export function FinancialPage() {
                 </button>
                 <button
                   type="submit"
-                  disabled={isSubmitting || (payrollPreview && payrollPreview.totalEarnings === 0)}
+                  disabled={isSubmitting || (payrollPreview && payrollPreview.totalEarnings === 0) || payrolls.some(p => p.worker.id.toString() === formData.workerId && p.month.startsWith(formData.month))}
                   className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 disabled:bg-gray-300"
                 >
                   {isSubmitting ? (
@@ -1904,11 +1927,12 @@ export function FinancialPage() {
             <div className="p-6 space-y-3">
               <button
                 onClick={() => handleSelectBankTransfer()}
-                className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-white border-2 border-transparent hover:border-blue-600 rounded-xl transition-all group"
+                disabled={isSubmitting}
+                className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-white border-2 border-transparent hover:border-blue-600 rounded-xl transition-all group disabled:opacity-50"
               >
                 <div className="flex items-center gap-4">
                   <div className="p-2 rounded-lg bg-blue-100 text-blue-600 group-hover:scale-110 transition-transform">
-                    <Landmark className="w-6 h-6" />
+                    {isSubmitting ? <Loader2 className="w-6 h-6 animate-spin" /> : <Landmark className="w-6 h-6" />}
                   </div>
                   <div className="text-left">
                     <p className="font-bold text-gray-900">Bank Transfer</p>
@@ -1920,11 +1944,12 @@ export function FinancialPage() {
 
               <button
                 onClick={() => handleConfirmPayment('CASH')}
-                className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-white border-2 border-transparent hover:border-green-600 rounded-xl transition-all group"
+                disabled={isSubmitting}
+                className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-white border-2 border-transparent hover:border-green-600 rounded-xl transition-all group disabled:opacity-50"
               >
                 <div className="flex items-center gap-4">
                   <div className="p-2 rounded-lg bg-green-100 text-green-600 group-hover:scale-110 transition-transform">
-                    <QrCode className="w-6 h-6" />
+                    {isSubmitting ? <Loader2 className="w-6 h-6 animate-spin" /> : <QrCode className="w-6 h-6" />}
                   </div>
                   <div className="text-left">
                     <p className="font-bold text-gray-900">Hand it Over (Cash)</p>
@@ -1971,7 +1996,14 @@ export function FinancialPage() {
               </button>
             </div>
 
-            <div className="p-6">
+            <div className="p-6 relative">
+              {isSubmitting && (
+                <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 flex flex-col items-center justify-center gap-2 animate-in fade-in duration-300">
+                  <Loader2 className="w-8 h-8 text-green-600 animate-spin" />
+                  <p className="text-sm font-bold text-green-900 uppercase tracking-widest">Verifying worker...</p>
+                </div>
+              )}
+              
               <div id="qr-reader" className="w-full rounded-xl overflow-hidden border-2 border-dashed border-green-200 bg-gray-50 aspect-square">
                   {/* html5-qrcode renderer will mount here */}
               </div>
@@ -1999,6 +2031,16 @@ export function FinancialPage() {
             </div>
 
             <QRScannerLogic onScanSuccess={handleQRScanSuccess} />
+          </div>
+        </div>
+      )}
+      
+      {/* Global Loading Overlay */}
+      {isSubmitting && (
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-[2px] z-[100] flex items-center justify-center animate-in fade-in duration-200">
+          <div className="bg-white/90 p-6 rounded-2xl shadow-xl flex flex-col items-center gap-3 border border-white/50">
+            <Loader2 className="w-10 h-10 text-blue-600 animate-spin" />
+            <p className="text-sm font-bold text-gray-800 tracking-wide uppercase">Processing...</p>
           </div>
         </div>
       )}

@@ -366,8 +366,8 @@ export const api = {
         headers: getHeaders(token)
     }).then(handleResponse),
     // Plantations
-    createPlantation: (data: any, clerkId: string, token?: string) =>
-        fetch(`${API_BASE_URL}/plantations?clerkId=${clerkId}`, {
+    createPlantation: (data: any, clerkId: string, creationPin: string, token?: string) =>
+        fetch(`${API_BASE_URL}/plantations?clerkId=${clerkId}&creationPin=${creationPin}`, {
             method: 'POST',
             headers: getHeaders(token),
             body: JSON.stringify(data),

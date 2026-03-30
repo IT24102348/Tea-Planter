@@ -167,9 +167,10 @@ export function WorkerDashboard() {
 
                 <button
                     onClick={() => setShowQrModal(true)}
-                    className="flex items-center gap-2 px-4 py-2 bg-orange-100 text-orange-700 hover:bg-orange-200 rounded-lg font-bold transition-colors"
+                    disabled={isGeneratingQr}
+                    className="flex items-center gap-2 px-4 py-2 bg-orange-100 text-orange-700 hover:bg-orange-200 rounded-lg font-bold transition-colors disabled:opacity-50"
                 >
-                    <QrCode className="w-5 h-5" />
+                    {isGeneratingQr ? <Loader2 className="w-5 h-5 animate-spin" /> : <QrCode className="w-5 h-5" />}
                     My QR Code
                 </button>
             </div>
@@ -315,7 +316,7 @@ export function WorkerDashboard() {
             </div>
 
             {/* QR Code Modal */}
-            {showQrModal && dashboardData && (
+            {showQrModal && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 backdrop-blur-sm animate-in fade-in duration-200">
                     <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden">
                         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-orange-50">
@@ -330,8 +331,15 @@ export function WorkerDashboard() {
                                 <X className="w-6 h-6" />
                             </button>
                         </div>
-                        <div className="p-8 flex flex-col items-center gap-6">
-                            {dashboardData.qrCode ? (
+                        <div className="p-8 flex flex-col items-center gap-6 relative min-h-[300px]">
+                            {(!dashboardData || isGeneratingQr) ? (
+                                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-white/80 z-10">
+                                    <Loader2 className="w-10 h-10 text-orange-600 animate-spin" />
+                                    <p className="text-sm font-bold text-orange-900 uppercase tracking-widest">Loading QR...</p>
+                                </div>
+                            ) : null}
+
+                            {dashboardData?.qrCode ? (
                                 <div className="p-4 bg-white rounded-xl shadow-inner border border-gray-100">
                                     <QRCodeSVG
                                         id="worker-qr"
