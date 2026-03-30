@@ -12,6 +12,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     Optional<User> findByClerkId(String clerkId);
 
-    @org.springframework.data.jpa.repository.Query("SELECT u FROM User u WHERE NOT EXISTS (SELECT 1 FROM Worker w WHERE w.user = u AND w.plantation.id = :plantationId)")
-    java.util.List<User> findAvailableUsers(@org.springframework.data.repository.query.Param("plantationId") Long plantationId);
+    @org.springframework.data.jpa.repository.Query("SELECT u FROM User u WHERE NOT EXISTS (SELECT 1 FROM Worker w WHERE w.user = u)")
+    java.util.List<User> findAvailableUsers();
 }

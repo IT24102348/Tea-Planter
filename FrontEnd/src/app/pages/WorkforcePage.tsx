@@ -124,7 +124,7 @@ export function WorkforcePage() {
       const token = await getToken();
       const [workerData, userData, plotData] = await Promise.all([
         api.getWorkers(plantationId, token || undefined),
-        api.getAvailableUsers(plantationId, token || undefined),
+        api.getAvailableUsers(token || undefined),
         api.getPlots(plantationId, token || undefined).catch(() => [])
       ]);
 

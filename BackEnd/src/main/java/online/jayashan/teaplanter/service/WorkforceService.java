@@ -152,7 +152,7 @@ public class WorkforceService {
             clerkService.updateUserMetadata(user.getClerkId(), "worker", plantationId);
         }
 
-        if (user.getPlantation() == null) {
+        if (user.getPlantation() == null || !user.getPlantation().getId().equals(plantationId)) {
             user.setPlantation(plantation);
             changed = true;
         }
@@ -164,8 +164,8 @@ public class WorkforceService {
         return workerRepository.save(worker);
     }
 
-    public List<online.jayashan.teaplanter.entity.User> getAvailableUsers(Long plantationId) {
-        return userService.getAvailableUsers(plantationId);
+    public List<online.jayashan.teaplanter.entity.User> getAvailableUsers() {
+        return userService.getAvailableUsers();
     }
 
     public List<Worker> getAllWorkers(Long plantationId) {

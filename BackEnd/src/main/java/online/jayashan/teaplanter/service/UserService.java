@@ -70,7 +70,7 @@ public class UserService {
     }
 
     @Transactional
-    public List<User> getAvailableUsers(Long plantationId) {
+    public List<User> getAvailableUsers() {
         try {
             // Fetch all users from Clerk to ensure local database is up-to-date
             java.util.List<Map<String, Object>> clerkUsers = clerkService.getClerkUsers();
@@ -175,7 +175,7 @@ public class UserService {
             System.err.println("DEBUG ERROR: Failed during getAvailableUsers sync: " + ex.getMessage());
         }
 
-        List<User> available = userRepository.findAvailableUsers(plantationId).stream()
+        List<User> available = userRepository.findAvailableUsers().stream()
                 .filter(user -> !user.getRoles().contains(Role.OWNER))
                 .collect(java.util.stream.Collectors.toList());
         System.out.println("DEBUG: Returning " + available.size() + " available users from DB");
