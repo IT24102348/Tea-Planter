@@ -177,7 +177,9 @@ export function WorkforcePage() {
       fetchWorkers();
       setShowModal(false);
       setUserSearchTerm('');
-      fetchWorkers();
+      
+      // Force page reload to ensure all data and state are fresh
+      window.location.reload();
     } catch (error: any) {
       console.error('Failed to save worker:', error);
 

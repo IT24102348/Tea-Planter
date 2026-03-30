@@ -99,7 +99,7 @@ function AppRoutes() {
       {/* Worker Pages - With WorkerLayout */}
       <Route
         element={
-          <PrivateRoute allowedRoles={['worker']}>
+          <PrivateRoute allowedRoles={['worker', 'clerk']}>
             <WorkerLayout />
           </PrivateRoute>
         }
@@ -171,7 +171,7 @@ function AppRoutes() {
           </PrivateRoute>
         } />
         <Route path="financial" element={
-          <PrivateRoute allowedRoles={['owner', 'clerk', 'worker']}>
+          <PrivateRoute allowedRoles={['owner']}>
             <FinancialPage />
           </PrivateRoute>
         } />
