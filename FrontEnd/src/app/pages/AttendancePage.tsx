@@ -92,11 +92,12 @@ export function AttendancePage() {
   const onScanSuccess = async (decodedText: string) => {
     if (isProcessingScan.current) return;
     isProcessingScan.current = true;
+    setIsSubmitting(true);
+    setCameraError(null);
     
     console.log("QR Scanned (Processing):", decodedText);
     
-    // Stop scanner first to avoid more scans from hardware
-    await stopScanner();
+    // Do not stop scanner immediately so the overlay shows inside the modal
     
     const token = await getToken();
     const promise = api.scanQrAttendance(decodedText, plantationId!, token || undefined);
@@ -107,13 +108,16 @@ export function AttendancePage() {
         console.log("Attendance API Success:", data);
         fetchData();
         isProcessingScan.current = false;
+        setIsSubmitting(false);
+        stopScanner();
         const msg = `Attendance marked: ${data.worker.user?.name || 'Worker'} (${data.checkOut ? 'Check-out' : 'Check-in'})`;
-        alert(msg);
         return msg;
       },
       error: (err) => {
         console.error("Attendance API Error:", err);
         isProcessingScan.current = false;
+        setIsSubmitting(false);
+        setCameraError(err.message || 'Failed to mark attendance');
         return `Failed: ${err.message}`;
       }
     });
@@ -516,21 +520,35 @@ export function AttendancePage() {
               </h2>
               <button
                 onClick={stopScanner}
-                className="text-gray-400 hover:text-gray-600 transition-colors p-1 hover:bg-gray-100 rounded-full"
+                disabled={isSubmitting}
+                className="text-gray-400 hover:text-gray-600 transition-colors p-1 hover:bg-gray-100 rounded-full disabled:opacity-50"
               >
                 <Plus className="w-6 h-6 rotate-45" />
               </button>
             </div>
-            <div className="p-6">
+            <div className="p-6 relative">
+              {isSubmitting && (
+                <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 flex flex-col items-center justify-center gap-2 animate-in fade-in duration-300">
+                  <Loader2 className="w-8 h-8 text-green-600 animate-spin" />
+                  <p className="text-sm font-bold text-green-900 uppercase tracking-widest">Processing...</p>
+                </div>
+              )}
               <div id="qr-reader" className="w-full rounded-xl overflow-hidden border-2 border-dashed border-green-200 bg-gray-50 aspect-square"></div>
-              <p className="text-center text-sm text-gray-500 mt-4 font-medium">
+              <p className="text-center text-sm text-gray-500 mt-4 font-medium relative z-20">
                 Position the worker's QR code within the frame to scan
               </p>
+              {cameraError && (
+                <div className="mt-4 p-3 bg-red-50 text-red-700 rounded-lg text-sm font-medium border border-red-100 flex items-center gap-2 animate-in slide-in-from-top-2 duration-300 relative z-20">
+                  <XCircle className="w-4 h-4 flex-shrink-0" />
+                  {cameraError}
+                </div>
+              )}
             </div>
             <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-center">
               <button
                 onClick={stopScanner}
-                className="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-semibold transition-colors"
+                disabled={isSubmitting}
+                className="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-semibold transition-colors disabled:opacity-50"
               >
                 Cancel
               </button>

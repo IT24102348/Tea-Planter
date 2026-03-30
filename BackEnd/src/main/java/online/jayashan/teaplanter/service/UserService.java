@@ -40,7 +40,13 @@ public class UserService {
                         user.setName(name);
                     }
 
-                    user.setEmail(finalEmail);
+                    boolean isNewEmailPlaceholder = finalEmail.contains("clerk.missing.email");
+                    boolean isCurrentEmailPlaceholder = user.getEmail() == null || user.getEmail().contains("clerk.missing.email");
+                    
+                    if (!isNewEmailPlaceholder || isCurrentEmailPlaceholder) {
+                        user.setEmail(finalEmail);
+                    }
+
                     user.setPassword("CLERK_MANAGED");
                     // Sync profile photo if available (from external sync callers)
                     return userRepository.save(user);

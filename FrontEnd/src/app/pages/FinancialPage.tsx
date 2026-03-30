@@ -129,6 +129,9 @@ export function FinancialPage() {
   const [payrollFilterStatus, setPayrollFilterStatus] = useState<string>('ALL');
   const [payrollSortBy, setPayrollSortBy] = useState<string>('name-asc');
 
+  const [staffSearchTerm, setStaffSearchTerm] = useState('');
+  const [staffRoleFilter, setStaffRoleFilter] = useState<string>('ALL');
+
   const fetchData = async () => {
     setLoading(true);
 
@@ -661,11 +664,22 @@ export function FinancialPage() {
 
   const fixedSalaryWorkers = useMemo(() => {
     const FIXED_SALARY_ROLES = ['Clerk', 'Supervisor', 'Driver', 'Maintenance', 'Security', 'Other'];
-    return workers.filter(w => {
+    let result = workers.filter(w => {
       const functions = w.workerFunctions || '';
       return FIXED_SALARY_ROLES.some(role => functions.includes(role));
     });
-  }, [workers]);
+
+    if (staffSearchTerm) {
+      const term = staffSearchTerm.toLowerCase();
+      result = result.filter(w => w.user?.name?.toLowerCase().includes(term));
+    }
+
+    if (staffRoleFilter !== 'ALL') {
+      result = result.filter(w => (w.workerFunctions || '').includes(staffRoleFilter));
+    }
+
+    return result;
+  }, [workers, staffSearchTerm, staffRoleFilter]);
 
   if (loading) {
     return (
@@ -1516,14 +1530,50 @@ export function FinancialPage() {
               </button>
             </div>
             
+            {/* Search & Filter for Staff Modal */}
+            <div className="p-4 border-b border-gray-100 bg-white flex flex-col sm:flex-row gap-4 justify-between items-center">
+              <div className="relative w-full sm:w-1/2">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search staff by name..."
+                  value={staffSearchTerm}
+                  onChange={(e) => setStaffSearchTerm(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
+                />
+              </div>
+              <div className="w-full sm:w-auto flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 transition-all focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500/20">
+                <Filter className="w-4 h-4 text-gray-400" />
+                <select
+                  value={staffRoleFilter}
+                  onChange={(e) => setStaffRoleFilter(e.target.value)}
+                  className="w-full bg-transparent text-sm outline-none text-gray-700 font-medium"
+                >
+                  <option value="ALL">All Roles</option>
+                  <option value="Clerk">Clerk</option>
+                  <option value="Supervisor">Supervisor</option>
+                  <option value="Driver">Driver</option>
+                  <option value="Maintenance">Maintenance</option>
+                  <option value="Security">Security</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+            </div>
+
             <div className="flex-1 overflow-y-auto p-6">
               {fixedSalaryWorkers.length === 0 ? (
                 <div className="text-center py-12">
                   <div className="bg-gray-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                     <Activity className="w-8 h-8 text-gray-400" />
                   </div>
-                  <p className="text-gray-500 font-medium">No staff members found with fixed salary roles.</p>
-                  <p className="text-xs text-gray-400 mt-1">Add workers as Supervisor, Driver, Security, etc. in Workforce section first.</p>
+                  <p className="text-gray-500 font-medium">
+                    {staffSearchTerm || staffRoleFilter !== 'ALL' 
+                      ? 'No staff members match the current search filters.' 
+                      : 'No staff members found with fixed salary roles.'}
+                  </p>
+                  {(!staffSearchTerm && staffRoleFilter === 'ALL') && (
+                    <p className="text-xs text-gray-400 mt-1">Add workers as Supervisor, Driver, Security, etc. in Workforce section first.</p>
+                  )}
                 </div>
               ) : (
                 <div className="overflow-x-auto">
