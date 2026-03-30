@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Plus, Search, Users, Mail, Phone, Calendar, Loader2, QrCode, Download } from 'lucide-react';
+import { Plus, Search, Users, Mail, Phone, Calendar, Loader2, QrCode, Download, Trash2, AlertCircle, X } from 'lucide-react';
 import { useUser, useAuth } from "@clerk/clerk-react";
 import { api } from '@/lib/api';
 import { QRCodeSVG } from 'qrcode.react';
@@ -69,6 +69,9 @@ export function WorkforcePage() {
   const [syncError, setSyncError] = useState<string | null>(null);
   const [showQrModal, setShowQrModal] = useState(false);
   const [selectedWorkerForQr, setSelectedWorkerForQr] = useState<Worker | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [workerToDelete, setWorkerToDelete] = useState<Worker | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleViewQr = async (worker: Worker) => {
     setSelectedWorkerForQr(worker);
@@ -222,15 +225,26 @@ export function WorkforcePage() {
     setShowModal(true);
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to permanently delete this worker record?')) return;
+  const handleDeleteClick = (worker: Worker) => {
+    setWorkerToDelete(worker);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!workerToDelete) return;
+    setIsDeleting(true);
     try {
       const token = await getToken();
-      await api.deleteWorker(id, token || undefined);
-      fetchWorkers();
+      await api.deleteWorker(workerToDelete.id, token || undefined);
+      await fetchWorkers();
+      toast.success('Worker successfully deleted.');
+      setShowDeleteModal(false);
+      setWorkerToDelete(null);
     } catch (error) {
       console.error('Failed to delete worker:', error);
-      alert('Failed to delete worker.');
+      toast.error('Failed to delete worker. Please make sure they have no active dependencies.');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -518,20 +532,13 @@ export function WorkforcePage() {
                 <td className="py-3 px-4">
                   <div className="flex gap-2">
                     <button
-                      onClick={() => handleViewQr(worker)}
-                      className="text-orange-600 hover:text-orange-700 text-sm font-medium mr-2 flex items-center gap-1"
-                    >
-                      <QrCode className="w-4 h-4" />
-                      QR Code
-                    </button>
-                    <button
                       onClick={() => handleEdit(worker)}
                       className="text-blue-600 hover:text-blue-700 text-sm font-medium"
                     >
                       Edit
                     </button>
                     <button
-                      onClick={() => handleDelete(worker.id)}
+                      onClick={() => handleDeleteClick(worker)}
                       className="text-red-600 hover:text-red-700 text-sm font-medium ml-2"
                     >
                       Delete
@@ -869,6 +876,7 @@ export function WorkforcePage() {
                   <label className="block text-sm font-semibold text-gray-700 mb-1">Join Date</label>
                   <input
                     type="date"
+                    max={new Date().toISOString().split('T')[0]}
                     value={formData.joinDate}
                     onChange={(e) => setFormData({ ...formData, joinDate: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
@@ -1083,6 +1091,76 @@ export function WorkforcePage() {
           </div>
         )
       }
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && workerToDelete && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[70] backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200 relative">
+            
+            {/* Loading Overlay (Buffer Effect) */}
+            {isDeleting && (
+              <div className="absolute inset-0 bg-white/60 backdrop-blur-sm z-10 flex flex-col items-center justify-center rounded-xl">
+                <div className="bg-white/80 p-4 rounded-xl shadow-xl flex flex-col items-center justify-center">
+                  <Loader2 className="w-10 h-10 animate-spin text-red-600 mb-4" />
+                  <p className="text-red-800 font-bold text-sm animate-pulse tracking-wide">Processing deletion...</p>
+                </div>
+              </div>
+            )}
+
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-red-50">
+              <h2 className="text-xl font-bold text-red-900 text-left flex items-center gap-2">
+                <AlertCircle className="w-5 h-5 text-red-700" />
+                Confirm Deletion
+              </h2>
+              <button 
+                onClick={() => setShowDeleteModal(false)} 
+                className="text-gray-400 hover:text-gray-600 p-1"
+                disabled={isDeleting}
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-4 text-left">
+              <div className="flex items-center gap-3 text-red-600 bg-red-50 p-4 rounded-lg border border-red-100">
+                <div className="p-2 bg-red-100 rounded-full">
+                  <Trash2 className="w-5 h-5" />
+                </div>
+                <p className="text-sm font-bold">Are you sure you want to delete <span className="underline decoration-2 underline-offset-2">{workerToDelete.user?.name || 'this worker'}</span>?</p>
+              </div>
+              
+              <p className="text-sm text-gray-500 leading-relaxed text-left">
+                This action is permanent and cannot be undone. All assigned tasks and future schedules will be unassigned. Historical harvest records and payments will be retained for auditing.
+              </p>
+
+              <div className="flex gap-3 pt-4 border-t border-gray-100 mt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteModal(false)}
+                  disabled={isDeleting}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-bold hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  disabled={isDeleting}
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 transition-colors flex items-center justify-center gap-2 shadow-lg shadow-red-200"
+                >
+                  {isDeleting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Deleting...
+                    </>
+                  ) : (
+                    'Permanently Delete'
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
