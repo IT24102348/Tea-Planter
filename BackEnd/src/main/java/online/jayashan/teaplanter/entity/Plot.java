@@ -1,6 +1,7 @@
 package online.jayashan.teaplanter.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.PastOrPresent;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -26,6 +27,7 @@ public class Plot {
 
     private String teaClone;
 
+    @PastOrPresent(message = "Planting date cannot be in the future")
     private LocalDate plantingDate;
 
     private String status; // Active, Retired, Replanted
