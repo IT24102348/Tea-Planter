@@ -105,7 +105,6 @@ function AppRoutes() {
         }
       >
         <Route path="/worker-dashboard" element={<WorkerDashboard />} />
-        <Route path="/worker-financial" element={<WorkerFinancial />} />
         <Route path="/worker-tasks" element={<WorkerTasks />} />
         <Route path="/worker-harvest" element={<WorkerHarvests />} />
         <Route path="/worker-reports" element={<WorkerReportsPage />} />
@@ -129,6 +128,7 @@ function AppRoutes() {
             <AIAssistantPage />
           </PrivateRoute>
         } />
+        <Route path="worker-financial" element={<WorkerFinancial />} />
         <Route path="settings" element={<SettingsPage />} />
       </Route>
 
@@ -171,7 +171,7 @@ function AppRoutes() {
           </PrivateRoute>
         } />
         <Route path="financial" element={
-          <PrivateRoute allowedRoles={['owner', 'clerk']}>
+          <PrivateRoute allowedRoles={['owner']}>
             <FinancialPage />
           </PrivateRoute>
         } />
