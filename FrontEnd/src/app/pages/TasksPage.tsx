@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Search, Loader2, Clock, Plus, Calendar, User, MapPin, Edit2, Trash2, Settings2, Filter, ArrowUpDown } from 'lucide-react';
+import { Search, Loader2, Clock, Plus, Calendar, User, MapPin, Edit2, Trash2, Settings2, Filter, ArrowUpDown, MessageSquare, CheckCircle2 } from 'lucide-react';
 import { useAuth, useUser } from "@clerk/clerk-react";
 import { api } from '@/lib/api';
 
@@ -12,7 +12,7 @@ interface Task {
     createdAt: string;
     assignedWorker: {
         id: number;
-        user?: { name: string };
+        user?: { name: string; phone?: string };
     } | null;
     plotId: string;
     taskCategory: string;
@@ -51,6 +51,12 @@ export function TasksPage() {
     });
 
     const [editingTask, setEditingTask] = useState<Task | null>(null);
+
+    const [whatsappPromptData, setWhatsappPromptData] = useState<{
+        phone: string;
+        message: string;
+        workerName: string;
+    } | null>(null);
 
     // Dynamic Task Rates State
     const [taskRates, setTaskRates] = useState<any[]>([]);
@@ -114,7 +120,18 @@ export function TasksPage() {
                     workerId: parseInt(assignFormData.workerId),
                     plantationId: plantationId ? parseInt(plantationId) : null
                 }, token || undefined);
-                alert('Task assigned successfully!');
+                
+                const assignedWorker = workers.find(w => w.id === parseInt(assignFormData.workerId));
+                if (assignedWorker && assignedWorker.user?.phone) {
+                    const msg = `Hello ${assignedWorker.user.name},\nYou have been assigned a new task:\n\n*Task*: ${assignFormData.title}\n*Category*: ${assignFormData.taskCategory}\n*Date*: ${assignFormData.taskDate}\n*Priority*: ${assignFormData.priority}\n\nPlease check your dashboard for more details.`;
+                    setWhatsappPromptData({
+                        phone: assignedWorker.user.phone,
+                        message: msg,
+                        workerName: assignedWorker.user.name
+                    });
+                } else {
+                    alert('Task assigned successfully!');
+                }
             }
             setShowAssignModal(false);
             setEditingTask(null);
@@ -507,6 +524,39 @@ export function TasksPage() {
                 )}
             </div>
 
+            {/* WhatsApp Notify Prompt */}
+            {whatsappPromptData && (
+                <div className="fixed inset-0 bg-black/50 flex flex-col items-center justify-center p-4 z-[70] backdrop-blur-sm">
+                    <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6 text-center animate-in zoom-in fade-in duration-200">
+                        <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <CheckCircle2 className="w-8 h-8" />
+                        </div>
+                        <h2 className="text-xl font-bold text-gray-900 mb-2">Task Assigned!</h2>
+                        <p className="text-gray-600 mb-6 text-sm">
+                            Would you like to send a WhatsApp notification to <strong>{whatsappPromptData.workerName}</strong>?
+                        </p>
+                        <div className="space-y-3">
+                            <a
+                                href={`https://wa.me/${whatsappPromptData.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(whatsappPromptData.message)}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                onClick={() => setWhatsappPromptData(null)}
+                                className="w-full flex items-center justify-center gap-2 py-2.5 bg-[#25D366] hover:bg-[#1ebd5b] text-white rounded-lg font-bold transition-colors"
+                            >
+                                <MessageSquare className="w-5 h-5" />
+                                Send via WhatsApp
+                            </a>
+                            <button
+                                onClick={() => setWhatsappPromptData(null)}
+                                className="w-full py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-lg transition-colors"
+                            >
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Assign Task Modal */}
             {showAssignModal && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
@@ -534,7 +584,7 @@ export function TasksPage() {
                             </button>
                         </div>
 
-                        <form onSubmit={handleAssignTask} className="p-6 space-y-4">
+                        <form onSubmit={handleAssignTask} className="p-6 space-y-4 overflow-y-auto max-h-[75vh]">
                             <div>
                                 <label className="block text-sm font-semibold text-gray-700 mb-1 text-left">Worker *</label>
                                 <select
