@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useLanguage, Language } from '@/contexts/LanguageContext';
 import { useUser, useAuth } from "@clerk/clerk-react";
-import { Globe, User, Bell, Shield, Sprout, MapPin, Maximize, QrCode, Download } from 'lucide-react';
+import { Globe, User, Bell, Shield, Sprout, MapPin, Maximize, QrCode, Download, Monitor, Smartphone, Apple, Loader2 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
@@ -155,6 +155,9 @@ export function SettingsPage() {
       {!plantationId && userRole.toLowerCase() !== 'clerk' && (
         <PlantationForm />
       )}
+
+      {/* PWA Installation Notice */}
+      <PWAInstallNotice />
 
     </div>
   );
@@ -999,6 +1002,91 @@ function WorkerQRSettings() {
             )}
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+function PWAInstallNotice() {
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isInstallable, setIsInstallable] = useState(false);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setIsInstallable(true);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    console.log(`User response to the install prompt: ${outcome}`);
+    setDeferredPrompt(null);
+    setIsInstallable(false);
+  };
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm mt-6 hover:border-green-200 transition-colors">
+      <div className="flex items-center gap-3 mb-6">
+        <div className="p-2 rounded-lg bg-green-100">
+          <Smartphone className="w-5 h-5 text-green-700" />
+        </div>
+        <div>
+          <h3 className="font-semibold text-gray-900 text-left">Install as Mobile App</h3>
+          <p className="text-sm text-gray-600 text-left">Get a better, full-screen experience and quick access from your home screen.</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Android / Desktop Install */}
+        <div className="p-5 bg-gray-50 rounded-2xl border border-gray-100 flex items-start gap-4">
+          <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm flex-shrink-0">
+            <Monitor className="w-5 h-5 text-blue-600" />
+          </div>
+          <div className="flex-1 text-left">
+            <h4 className="font-bold text-gray-900 mb-1">Android & Desktop</h4>
+            <p className="text-xs text-gray-500 mb-4">Compatible with Google Chrome, Edge, and most Android browsers.</p>
+            {isInstallable ? (
+              <button
+                onClick={handleInstallClick}
+                className="w-full py-2 bg-green-600 text-white rounded-lg text-sm font-bold hover:bg-green-700 shadow-sm transition-all active:scale-95 flex items-center justify-center gap-2"
+              >
+                <Download className="w-4 h-4" />
+                Install Application
+              </button>
+            ) : (
+              <div className="text-[10px] font-bold text-gray-400 bg-gray-100 px-3 py-2 rounded-lg border border-gray-200 inline-block">
+                APP ALREADY INSTALLED OR NOT SUPPORTED
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* iOS Install */}
+        <div className="p-5 bg-gray-50 rounded-2xl border border-gray-100 flex items-start gap-4">
+          <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm flex-shrink-0">
+            <Apple className="w-5 h-5 text-gray-900" />
+          </div>
+          <div className="flex-1 text-left">
+            <h4 className="font-bold text-gray-900 mb-1">Apple iOS (Safari)</h4>
+            <p className="text-xs text-gray-500 mb-3">Follow these steps on your iPhone or iPad:</p>
+            <ol className="text-[11px] text-gray-600 space-y-2 list-decimal list-inside font-medium bg-white/50 p-3 rounded-xl border border-white/50">
+              <li>Open this site in <span className="font-bold text-blue-600">Safari browser</span></li>
+              <li>Tap the <span className="font-bold text-gray-900">"Share"</span> button (box with upward arrow)</li>
+              <li>Scroll down and select <span className="font-bold text-gray-900">"Add to Home Screen"</span></li>
+              <li>Tap <span className="font-bold text-blue-600">"Add"</span> at the top right</li>
+            </ol>
+          </div>
+        </div>
       </div>
     </div>
   );
