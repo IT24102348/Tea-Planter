@@ -280,6 +280,7 @@ public class WorkforceService {
             throw new RuntimeException("Worker already has an attendance record for today.");
         }
 
+        Attendance attendance = Attendance.builder()
                 .worker(worker)
                 .checkIn(ZonedDateTime.now(ZoneId.of("Asia/Colombo")).toLocalDateTime())
                 .status("Present")
