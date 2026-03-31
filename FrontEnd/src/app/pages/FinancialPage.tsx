@@ -676,9 +676,7 @@ export function FinancialPage() {
             />
           </div>
         </div>
-        <div className="flex justify-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-widest bg-gray-50 px-3 py-1 rounded-full border border-gray-100 self-start sm:self-auto w-full sm:w-auto">
-           Plantation Financials
-        </div>
+
       </div>
 
       {/* Tab Navigation */}
