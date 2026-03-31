@@ -151,16 +151,18 @@ export function OwnerDashboard() {
                         <h3 className="text-lg font-semibold text-gray-900">Monthly Yield Trend (Real Data)</h3>
                         <span className="text-xs text-gray-400">Past 6 months</span>
                     </div>
-                    <div className="h-[250px] w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={yieldTrendData}>
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis dataKey="month" />
-                                <YAxis />
-                                <Tooltip />
-                                <Line type="monotone" dataKey="yield" stroke="#16a34a" strokeWidth={2} />
-                            </LineChart>
-                        </ResponsiveContainer>
+                    <div className="overflow-x-auto pb-2 custom-scrollbar">
+                        <div className="h-[250px] min-w-[500px] w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <LineChart data={yieldTrendData}>
+                                    <CartesianGrid strokeDasharray="3 3" />
+                                    <XAxis dataKey="month" />
+                                    <YAxis />
+                                    <Tooltip />
+                                    <Line type="monotone" dataKey="yield" stroke="#16a34a" strokeWidth={2} />
+                                </LineChart>
+                            </ResponsiveContainer>
+                        </div>
                     </div>
                 </div>
             </div>

@@ -12,6 +12,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.List;
 
 @Service
@@ -53,11 +55,12 @@ public class WorkforceService {
             throw new RuntimeException("Worker does not belong to this plantation.");
         }
 
-        LocalDateTime now = LocalDateTime.now();
+        ZoneId zoneId = ZoneId.of("Asia/Colombo");
+        LocalDateTime now = ZonedDateTime.now(zoneId).toLocalDateTime();
         LocalDateTime startOfDay = now.toLocalDate().atStartOfDay();
         LocalDateTime endOfDay = now.toLocalDate().atTime(23, 59, 59, 999999999);
 
-        log.debug("Checking attendance for date: {}. Range: {} to {}", now.toLocalDate(), startOfDay, endOfDay);
+        log.info("Checking attendance for local date: {}. Range: {} to {}", now.toLocalDate(), startOfDay, endOfDay);
         List<Attendance> existing = attendanceRepository.findByWorkerAndCheckInBetween(worker, startOfDay, endOfDay);
 
         if (existing.isEmpty()) {
@@ -266,19 +269,19 @@ public class WorkforceService {
     public Attendance checkIn(Long workerId) {
         Worker worker = getWorkerById(workerId);
 
-        // Validation: Prevent multiple attendance records for the same worker on the
-        // same day
-        LocalDateTime startOfDay = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0).withNano(0);
-        LocalDateTime endOfDay = LocalDateTime.now().withHour(23).withMinute(59).withSecond(59).withNano(999999999);
+        // Validation: Prevent multiple attendance records for the same worker on the same day
+        ZoneId zoneId = ZoneId.of("Asia/Colombo");
+        LocalDateTime now = ZonedDateTime.now(zoneId).toLocalDateTime();
+        LocalDateTime startOfDay = now.toLocalDate().atStartOfDay();
+        LocalDateTime endOfDay = now.toLocalDate().atTime(23, 59, 59, 999999999);
 
         List<Attendance> existing = attendanceRepository.findByWorkerAndCheckInBetween(worker, startOfDay, endOfDay);
         if (!existing.isEmpty()) {
             throw new RuntimeException("Worker already has an attendance record for today.");
         }
 
-        Attendance attendance = Attendance.builder()
                 .worker(worker)
-                .checkIn(LocalDateTime.now())
+                .checkIn(ZonedDateTime.now(ZoneId.of("Asia/Colombo")).toLocalDateTime())
                 .status("Present")
                 .plantation(worker.getPlantation())
                 .build();
@@ -288,7 +291,7 @@ public class WorkforceService {
     public Attendance checkOut(Long attendanceId) {
         Attendance attendance = attendanceRepository.findById(attendanceId)
                 .orElseThrow(() -> new RuntimeException("Attendance record not found"));
-        attendance.setCheckOut(LocalDateTime.now());
+        attendance.setCheckOut(ZonedDateTime.now(ZoneId.of("Asia/Colombo")).toLocalDateTime());
         return attendanceRepository.save(attendance);
     }
 

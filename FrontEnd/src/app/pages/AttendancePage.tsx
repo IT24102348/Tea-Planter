@@ -223,14 +223,20 @@ export function AttendancePage() {
     }
   };
 
-  const dailyAttendance = attendance.filter(record => new Date(record.checkIn).toISOString().split('T')[0] === dateFilter);
+  const toLocalDateString = (date: string | Date) => {
+    if (!date) return '';
+    const d = new Date(date);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+
+  const dailyAttendance = attendance.filter(record => toLocalDateString(record.checkIn) === dateFilter);
   const presentCount = dailyAttendance.filter(a => a.status?.toUpperCase() === 'PRESENT').length;
   const leaveCount = dailyAttendance.filter(a => a.status?.toUpperCase() === 'ON_LEAVE').length;
 
   const filteredAttendance = attendance
     .filter(record => {
       const matchesSearch = (record.worker.user?.name || '').toLowerCase().includes(searchTerm.toLowerCase());
-      const recordDate = new Date(record.checkIn).toISOString().split('T')[0];
+      const recordDate = toLocalDateString(record.checkIn);
       const matchesDate = recordDate === dateFilter;
       
       let matchesStatus = true;
@@ -420,93 +426,95 @@ export function AttendancePage() {
             Attendance Records for {new Date(dateFilter).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
           </h3>
         </div>
-        <table className="w-full">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="text-left py-3 px-4 text-sm font-semibold text-gray-900">Worker Name</th>
-              <th className="text-left py-3 px-4 text-sm font-semibold text-gray-900">Check In</th>
-              <th className="text-left py-3 px-4 text-sm font-semibold text-gray-900">Check Out</th>
-              <th className="text-left py-3 px-4 text-sm font-semibold text-gray-900">Status</th>
-              <th className="text-right py-3 px-4 text-sm font-semibold text-gray-900">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredAttendance.length > 0 ? (
-              filteredAttendance.map((record) => (
-                <tr key={record.id} className="border-b border-gray-100 last:border-0 hover:bg-blue-50/30 transition-colors">
-                  <td className="py-3 px-4 text-sm font-medium text-gray-900">{record.worker.user?.name || 'Unnamed Worker'}</td>
-                  <td className="py-3 px-4 text-sm text-gray-900">{new Date(record.checkIn).toLocaleString()}</td>
-                  <td className="py-3 px-4 text-sm text-gray-900">{record.checkOut ? new Date(record.checkOut).toLocaleString() : '-'}</td>
-                  <td className="py-3 px-4">
-                    <div className="flex items-center gap-2">
-                      {record.status?.toUpperCase() === 'PRESENT' && (
-                        <div className="flex items-center gap-2">
-                          {!record.checkOut ? (
-                            <>
-                              <div className="relative flex h-3 w-3">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
-                              </div>
-                              <span className="text-sm font-semibold text-green-600">Working</span>
-                            </>
-                          ) : (
-                            <>
-                              <div className="flex -space-x-1">
-                                <CheckCircle2 className="w-4 h-4 text-green-600" />
-                                <CheckCircle2 className="w-4 h-4 text-green-600 -ml-2" />
-                              </div>
-                              <span className="text-sm font-bold text-green-700">Completed</span>
-                            </>
-                          )}
-                        </div>
-                      )}
-                      {(record.status?.toUpperCase() === 'HALF_DAY' || record.status?.toUpperCase() === 'PARTIAL') && (
-                        <>
-                          <Clock className="w-4 h-4 text-blue-600" />
-                          <span className="text-sm font-medium text-blue-600">Half Day</span>
-                        </>
-                      )}
-                      {record.status?.toUpperCase() === 'ABSENT' && (
-                        <>
-                          <XCircle className="w-4 h-4 text-red-600" />
-                          <span className="text-sm font-medium text-red-600">Absent</span>
-                        </>
-                      )}
-                      {record.status?.toUpperCase() === 'ON_LEAVE' && (
-                        <>
-                          <CalendarIcon className="w-4 h-4 text-orange-600" />
-                          <span className="text-sm font-medium text-orange-600">On Leave</span>
-                        </>
-                      )}
-                    </div>
-                  </td>
-                  <td className="py-3 px-4 text-right">
-                    <div className="flex justify-end gap-2">
-                      <button
-                        onClick={() => handleEdit(record)}
-                        className="text-blue-600 hover:text-blue-700 text-sm font-medium"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDelete(record.id)}
-                        className="text-red-600 hover:text-red-700 text-sm font-medium"
-                      >
-                        Delete
-                      </button>
-                    </div>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[700px]">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="text-left py-3 px-4 text-sm font-semibold text-gray-900">Worker Name</th>
+                <th className="text-left py-3 px-4 text-sm font-semibold text-gray-900">Check In</th>
+                <th className="text-left py-3 px-4 text-sm font-semibold text-gray-900">Check Out</th>
+                <th className="text-left py-3 px-4 text-sm font-semibold text-gray-900">Status</th>
+                <th className="text-right py-3 px-4 text-sm font-semibold text-gray-900">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredAttendance.length > 0 ? (
+                filteredAttendance.map((record) => (
+                  <tr key={record.id} className="border-b border-gray-100 last:border-0 hover:bg-blue-50/30 transition-colors">
+                    <td className="py-3 px-4 text-sm font-medium text-gray-900">{record.worker.user?.name || 'Unnamed Worker'}</td>
+                    <td className="py-3 px-4 text-sm text-gray-900">{new Date(record.checkIn).toLocaleString()}</td>
+                    <td className="py-3 px-4 text-sm text-gray-900">{record.checkOut ? new Date(record.checkOut).toLocaleString() : '-'}</td>
+                    <td className="py-3 px-4">
+                      <div className="flex items-center gap-2">
+                        {record.status?.toUpperCase() === 'PRESENT' && (
+                          <div className="flex items-center gap-2">
+                            {!record.checkOut ? (
+                              <>
+                                <div className="relative flex h-3 w-3">
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                  <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+                                </div>
+                                <span className="text-sm font-semibold text-green-600">Working</span>
+                              </>
+                            ) : (
+                              <>
+                                <div className="flex -space-x-1">
+                                  <CheckCircle2 className="w-4 h-4 text-green-600" />
+                                  <CheckCircle2 className="w-4 h-4 text-green-600 -ml-2" />
+                                </div>
+                                <span className="text-sm font-bold text-green-700">Completed</span>
+                              </>
+                            )}
+                          </div>
+                        )}
+                        {(record.status?.toUpperCase() === 'HALF_DAY' || record.status?.toUpperCase() === 'PARTIAL') && (
+                          <>
+                            <Clock className="w-4 h-4 text-blue-600" />
+                            <span className="text-sm font-medium text-blue-600">Half Day</span>
+                          </>
+                        )}
+                        {record.status?.toUpperCase() === 'ABSENT' && (
+                          <>
+                            <XCircle className="w-4 h-4 text-red-600" />
+                            <span className="text-sm font-medium text-red-600">Absent</span>
+                          </>
+                        )}
+                        {record.status?.toUpperCase() === 'ON_LEAVE' && (
+                          <>
+                            <CalendarIcon className="w-4 h-4 text-orange-600" />
+                            <span className="text-sm font-medium text-orange-600">On Leave</span>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                    <td className="py-3 px-4 text-right">
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => handleEdit(record)}
+                          className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDelete(record.id)}
+                          className="text-red-600 hover:text-red-700 text-sm font-medium"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={5} className="py-12 text-center text-gray-500 italic bg-gray-50/30">
+                    No attendance records found for the selected criteria.
                   </td>
                 </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={5} className="py-12 text-center text-gray-500 italic bg-gray-50/30">
-                  No attendance records found for the selected criteria.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* QR Scanner Modal */}

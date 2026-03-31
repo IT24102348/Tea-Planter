@@ -405,16 +405,18 @@ export function HarvestPage() {
 
       <div className="bg-white rounded-lg border border-gray-200 p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Weekly Harvest Trend</h3>
-        <div className="h-[300px] w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={weeklyData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="day" />
-              <YAxis />
-              <Tooltip />
-              <Line type="monotone" dataKey="yield" stroke="#16a34a" strokeWidth={2} />
-            </LineChart>
-          </ResponsiveContainer>
+        <div className="overflow-x-auto pb-2 custom-scrollbar">
+          <div className="h-[300px] min-w-[600px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={weeklyData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="day" />
+                <YAxis />
+                <Tooltip />
+                <Line type="monotone" dataKey="yield" stroke="#16a34a" strokeWidth={2} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
         </div>
       </div>
 
@@ -423,7 +425,7 @@ export function HarvestPage() {
           <h3 className="font-semibold text-gray-900">Recent Harvest Records</h3>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full min-w-[800px]">
             <thead className="bg-gray-50">
               <tr>
                 <th className="text-left py-3 px-4 text-sm font-semibold text-gray-900">Date</th>
