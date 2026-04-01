@@ -127,7 +127,7 @@ public class FinancialService {
                 if ("PAID".equals(status)) {
                         payroll.setPaidDate(java.time.LocalDate.now());
                         if (!wasAlreadyPaid) {
-                            emailService.sendPayrollEmail(payroll);
+                            emailService.sendPayrollEmail(payroll.getId());
                         }
                 }
                 return payrollRepository.save(payroll);
@@ -144,7 +144,7 @@ public class FinancialService {
                         if ("PAID".equals(status)) {
                                 p.setPaidDate(java.time.LocalDate.now());
                                 if (!wasAlreadyPaid) {
-                                    emailService.sendPayrollEmail(p);
+                                    emailService.sendPayrollEmail(p.getId());
                                 }
                         }
                 });

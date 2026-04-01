@@ -9,11 +9,13 @@ import online.jayashan.teaplanter.entity.Payroll;
 import online.jayashan.teaplanter.entity.Task;
 import online.jayashan.teaplanter.repository.AttendanceRepository;
 import online.jayashan.teaplanter.repository.HarvestRepository;
+import online.jayashan.teaplanter.repository.PayrollRepository;
 import online.jayashan.teaplanter.repository.TaskRepository;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.io.File;
 import java.time.LocalDate;
@@ -31,9 +33,14 @@ public class EmailService {
     private final AttendanceRepository attendanceRepository;
     private final HarvestRepository harvestRepository;
     private final TaskRepository taskRepository;
+    private final PayrollRepository payrollRepository;
 
     @Async
-    public void sendPayrollEmail(Payroll payroll) {
+    @Transactional(readOnly = true)
+    public void sendPayrollEmail(Long payrollId) {
+        Payroll payroll = payrollRepository.findById(payrollId)
+                .orElseThrow(() -> new RuntimeException("Payroll record not found for async email: " + payrollId));
+
         if (payroll.getWorker() == null || payroll.getWorker().getUser() == null || payroll.getWorker().getUser().getEmail() == null) {
             return;
         }
@@ -77,8 +84,9 @@ public class EmailService {
             }
 
             mailSender.send(message);
-        } catch (MessagingException e) {
-            System.err.println("Failed to send payroll email to " + to + ": " + e.getMessage());
+        } catch (Exception e) {
+            System.err.println("CRITICAL: Failed to send background payroll email to " + to + ": " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
@@ -89,7 +97,11 @@ public class EmailService {
     }
 
     @Async
-    public void sendTaskAssignmentEmail(Task task) {
+    @Transactional(readOnly = true)
+    public void sendTaskAssignmentEmail(Long taskId) {
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new RuntimeException("Task record not found for async email: " + taskId));
+
         if (task.getAssignedWorker() == null || task.getAssignedWorker().getUser() == null || task.getAssignedWorker().getUser().getEmail() == null) {
             return;
         }
@@ -115,7 +127,7 @@ public class EmailService {
             content.append("<h1 style='margin: 0; font-size: 20px; font-weight: 600; color: #2e7d32; text-transform: uppercase; letter-spacing: 2px;'>").append(plantationName).append("</h1>");
             content.append("<p style='margin: 5px 0 0 0; color: #666; font-size: 13px; font-weight: 500;'>New Task Assignment</p>");
             content.append("</div>");
-
+ 
             // Body
             content.append("<div style='padding: 30px;'>");
             content.append("<h2 style='color: #1a3c22; margin-top: 0;'>Hello, ").append(workerName).append("!</h2>");
@@ -142,8 +154,9 @@ public class EmailService {
 
             helper.setText(content.toString(), true);
             mailSender.send(message);
-        } catch (MessagingException e) {
-            System.err.println("Failed to send task email to " + to + ": " + e.getMessage());
+        } catch (Exception e) {
+            System.err.println("CRITICAL: Failed to send background task assignment email to " + to + ": " + e.getMessage());
+            e.printStackTrace();
         }
     }
 

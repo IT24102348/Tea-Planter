@@ -48,7 +48,7 @@ public class TaskService {
         Task savedTask = taskRepository.save(taskBuilder.build());
 
         if (savedTask.getAssignedWorker() != null) {
-            emailService.sendTaskAssignmentEmail(savedTask);
+            emailService.sendTaskAssignmentEmail(savedTask.getId());
         }
 
         return savedTask;
