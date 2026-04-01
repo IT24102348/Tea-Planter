@@ -1,6 +1,5 @@
 package online.jayashan.teaplanter.service;
 
-import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import online.jayashan.teaplanter.entity.Attendance;
@@ -22,7 +21,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.stream.Collectors;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.beans.factory.annotation.Value;
 import jakarta.annotation.PostConstruct;
@@ -85,6 +83,7 @@ public class EmailService {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
+            helper.setFrom(mailUser);
             helper.setTo(to);
             helper.setSubject(subject);
             helper.setText(buildEnhancedHtmlContent(payroll, attendance, tasks, harvests), true);
@@ -135,6 +134,7 @@ public class EmailService {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
+            helper.setFrom(mailUser);
             helper.setTo(to);
             helper.setSubject(subject);
 
