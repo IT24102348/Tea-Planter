@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Search, Loader2, Clock, Plus, Calendar, User, MapPin, Edit2, Trash2, Settings2, Filter, ArrowUpDown, MessageSquare, CheckCircle2 } from 'lucide-react';
+import { Search, Loader2, Clock, Plus, Calendar, User, MapPin, Edit2, Trash2, Settings2, Filter, ArrowUpDown, MessageSquare, CheckCircle2, Copy } from 'lucide-react';
 import { useAuth, useUser } from "@clerk/clerk-react";
 import { api } from '@/lib/api';
 
@@ -68,21 +68,26 @@ export function TasksPage() {
         unit: 'PER_PROCESS',
         description: ''
     });
+    const [plantationName, setPlantationName] = useState('Tea Planter');
 
     const fetchData = async () => {
         setLoading(true);
         try {
             const token = await getToken();
-            const [taskData, workerData, plotData, rateData] = await Promise.all([
+            const [taskData, workerData, plotData, rateData, plantationData] = await Promise.all([
                 api.getTasks(selectedMonth, plantationId, token || undefined),
                 api.getWorkers(plantationId, token || undefined),
                 api.getPlots(plantationId, token || undefined).catch(() => []),
-                api.getTaskRates(token || undefined)
+                api.getTaskRates(token || undefined),
+                api.getPlantation(user?.id || '', token || undefined).catch(() => null)
             ]);
             setTasks(taskData);
             setWorkers(workerData);
             setPlots(plotData);
             setTaskRates(rateData);
+            if (plantationData?.name) {
+                setPlantationName(plantationData.name);
+            }
         } catch (error) {
             console.error('Failed to fetch data:', error);
         } finally {
@@ -123,7 +128,7 @@ export function TasksPage() {
                 
                 const assignedWorker = workers.find(w => w.id === parseInt(assignFormData.workerId));
                 if (assignedWorker && assignedWorker.user?.phone) {
-                    const msg = `Hello ${assignedWorker.user.name},\nYou have been assigned a new task:\n\n*Task*: ${assignFormData.title}\n*Category*: ${assignFormData.taskCategory}\n*Date*: ${assignFormData.taskDate}\n*Priority*: ${assignFormData.priority}\n\nPlease check your dashboard for more details.`;
+                    const msg = `*NEW TASK ASSIGNED*\n*Plantation:* ${plantationName}\n\nHello ${assignedWorker.user.name},\nYou have been assigned a new task on the plantation.\n\n*Task:* ${assignFormData.title}\n*Category:* ${assignFormData.taskCategory}\n*Plot/Block:* ${assignFormData.plotId}\n*Date:* ${assignFormData.taskDate}\n*Priority:* ${assignFormData.priority}\n\n*Instructions & Details:* \n${assignFormData.description || 'None'}\n\nPlease check your dashboard for more details.`;
                     setWhatsappPromptData({
                         phone: assignedWorker.user.phone,
                         message: msg,
@@ -546,6 +551,19 @@ export function TasksPage() {
                                 <MessageSquare className="w-5 h-5" />
                                 Send via WhatsApp
                             </a>
+                            <button
+                                onClick={() => {
+                                    const formattedPhone = whatsappPromptData.phone.replace(/[^0-9]/g, '');
+                                    const finalPhone = formattedPhone.startsWith('0') ? '94' + formattedPhone.substring(1) : (formattedPhone.startsWith('94') ? formattedPhone : '94' + formattedPhone);
+                                    const shareLink = `https://wa.me/${finalPhone}?text=${encodeURIComponent(whatsappPromptData.message)}`;
+                                    navigator.clipboard.writeText(shareLink);
+                                    alert('Link copied to clipboard!');
+                                }}
+                                className="w-full flex items-center justify-center gap-2 py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg font-bold border border-blue-200 transition-colors"
+                            >
+                                <Copy className="w-5 h-5" />
+                                Copy Shareable Link
+                            </button>
                             <button
                                 onClick={() => setWhatsappPromptData(null)}
                                 className="w-full py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-lg transition-colors"
