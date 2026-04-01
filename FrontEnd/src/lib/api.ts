@@ -25,6 +25,26 @@ async function handleResponse(response: Response) {
     return null;
 }
 
+async function handleBlobResponse(response: Response) {
+    if (!response.ok) {
+        let errorMessage = `Error ${response.status}: ${response.statusText}`;
+        try {
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                const errorData = await response.json();
+                errorMessage = errorData.message || errorData.error || errorMessage;
+            } else {
+                const text = await response.text();
+                if (text && text.length < 100) errorMessage = text;
+            }
+        } catch (e) {
+            console.error('Failed to parse error response body:', e);
+        }
+        throw new Error(errorMessage);
+    }
+    return response.blob();
+}
+
 const getHeaders = (token?: string) => {
     const headers: Record<string, string> = {
         'Content-Type': 'application/json',
@@ -466,36 +486,33 @@ export const api = {
     downloadHarvestReport: (plantationId: string | number, month: string, token?: string) =>
         fetch(`${API_BASE_URL}/reports/harvest?plantationId=${plantationId}&month=${month}-01`, {
             headers: getHeaders(token)
-        }).then(res => res.blob()),
+        }).then(handleBlobResponse),
 
     downloadPayrollReport: (plantationId: string | number, month: string, token?: string) =>
         fetch(`${API_BASE_URL}/reports/payroll?plantationId=${plantationId}&month=${month}-01`, {
             headers: getHeaders(token)
-        }).then(res => res.blob()),
+        }).then(handleBlobResponse),
 
     downloadInventoryReport: (plantationId: string | number, month: string, token?: string) =>
         fetch(`${API_BASE_URL}/reports/inventory?plantationId=${plantationId}&month=${month}-01`, {
             headers: getHeaders(token)
-        }).then(res => res.blob()),
+        }).then(handleBlobResponse),
 
     downloadFinancialReport: (plantationId: string | number, month: string, token?: string) =>
         fetch(`${API_BASE_URL}/reports/financial?plantationId=${plantationId}&month=${month}-01`, {
             headers: getHeaders(token)
-        }).then(res => res.blob()),
+        }).then(handleBlobResponse),
 
     downloadIncomeAnalysisReport: (plantationId: string | number, month: string, token?: string) =>
         fetch(`${API_BASE_URL}/reports/income-analysis?plantationId=${plantationId}&month=${month}-01`, {
             headers: getHeaders(token)
-        }).then(res => res.blob()),
+        }).then(handleBlobResponse),
 
-    async downloadWorkerPersonalReport(plantationId: number, month: string, clerkId: string, token?: string) {
-        const response = await fetch(`${API_BASE_URL}/reports/worker-personal?plantationId=${plantationId}&month=${month}-01`, {
+    downloadWorkerPersonalReport: (plantationId: number, month: string, clerkId: string, token?: string) =>
+        fetch(`${API_BASE_URL}/reports/worker-personal?plantationId=${plantationId}&month=${month}-01`, {
             headers: {
                 ...getHeaders(token),
                 'X-User-Clerk-Id': clerkId
             }
-        });
-        if (!response.ok) throw new Error('Failed to download report');
-        return response.blob();
-    },
+        }).then(handleBlobResponse),
 };

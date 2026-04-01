@@ -944,9 +944,12 @@ function WorkerQRSettings() {
       downloadLink.download = `QR-Attendance-${name}.png`;
       document.body.appendChild(downloadLink);
       downloadLink.click();
-      document.body.removeChild(downloadLink);
-      URL.revokeObjectURL(url);
-      toast.success("QR Code downloaded as PNG");
+
+      // Revoke the Object URL and remove element after a short delay
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+        document.body.removeChild(downloadLink);
+      }, 100);
     };
 
     img.onerror = () => {

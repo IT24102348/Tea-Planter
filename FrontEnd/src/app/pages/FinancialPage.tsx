@@ -598,22 +598,27 @@ export function FinancialPage() {
   }, [totalRevenue, totalExpenses]);
 
   const handleExport = async () => {
-    if (isExporting) return;
+    if (isExporting || !plantationId) return;
     setIsExporting(true);
     try {
       const token = await getToken();
-      const blob = await api.downloadFinancialReport(plantationId!, selectedMonth, token || undefined);
+      const blob = await api.downloadFinancialReport(plantationId, selectedMonth, token || undefined);
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
+      a.style.display = 'none';
       a.href = url;
       a.download = `Financial_Report_${selectedMonth}.pdf`;
       document.body.appendChild(a);
       a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-    } catch (error) {
+
+      // Revoke the URL and remove element after a short delay
+      setTimeout(() => {
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      }, 100);
+    } catch (error: any) {
       console.error('Export failed:', error);
-      alert('Failed to export financial report.');
+      alert(error.message || 'Failed to export financial report.');
     } finally {
       setIsExporting(false);
     }

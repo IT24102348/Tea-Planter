@@ -56,6 +56,8 @@ export function WorkerReportsPage() {
             // Create blob link to download
             const url = window.URL.createObjectURL(blob);
             window.open(url, '_blank');
+            // Revoke the object URL after a delay to ensure the browser has loaded the PDF
+            setTimeout(() => window.URL.revokeObjectURL(url), 60000);
         } catch (error) {
             console.error('Failed to generate report:', error);
             alert('Failed to generate report. Please try again.');

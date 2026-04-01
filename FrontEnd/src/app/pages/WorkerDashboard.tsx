@@ -419,8 +419,12 @@ export function WorkerDashboard() {
                                                 downloadLink.download = `QR-${user?.firstName || 'Worker'}.png`;
                                                 document.body.appendChild(downloadLink);
                                                 downloadLink.click();
-                                                document.body.removeChild(downloadLink);
-                                                URL.revokeObjectURL(url);
+
+                                                // Revoke the Object URL and remove element after a short delay
+                                                setTimeout(() => {
+                                                    URL.revokeObjectURL(url);
+                                                    document.body.removeChild(downloadLink);
+                                                }, 100);
                                                 toast.success("QR Code downloaded as PNG");
                                             };
                                             
