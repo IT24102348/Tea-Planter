@@ -4,12 +4,12 @@ import lombok.RequiredArgsConstructor;
 import online.jayashan.teaplanter.entity.Plantation;
 import online.jayashan.teaplanter.entity.Role;
 import online.jayashan.teaplanter.entity.User;
-import online.jayashan.teaplanter.repository.PlantationRepository;
-import online.jayashan.teaplanter.repository.UserRepository;
+import online.jayashan.teaplanter.repository.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Set;
 
 @Service
@@ -18,6 +18,15 @@ public class PlantationService {
 
     private final PlantationRepository plantationRepository;
     private final UserRepository userRepository;
+    private final WorkerRepository workerRepository;
+    private final TaskRepository taskRepository;
+    private final HarvestRepository harvestRepository;
+    private final AttendanceRepository attendanceRepository;
+    private final PayrollRepository payrollRepository;
+    private final InventoryRepository inventoryRepository;
+    private final StockEntryRepository stockEntryRepository;
+    private final PlotRepository plotRepository;
+    private final FactoryRepository factoryRepository;
     private final ClerkService clerkService;
     
     @Value("${PLANTATION_CREATION_PIN}")
@@ -93,5 +102,70 @@ public class PlantationService {
         return userRepository.findByClerkId(clerkId)
                 .map(User::getPlantation)
                 .orElseThrow(() -> new RuntimeException("User not found or no plantation associated"));
+    }
+
+    @Transactional
+    public void deletePlantation(String clerkId, String confirmedName) {
+        User owner = userRepository.findByClerkId(clerkId)
+                .orElseThrow(() -> new RuntimeException("User not found: " + clerkId));
+
+        if (!owner.getRoles().contains(Role.OWNER)) {
+            throw new RuntimeException("Access denied: Only owners can delete a plantation.");
+        }
+
+        Plantation plantation = plantationRepository.findByOwner(owner)
+                .orElseThrow(() -> new RuntimeException("No plantation found for this user."));
+
+        if (!plantation.getName().equals(confirmedName)) {
+            throw new RuntimeException("Confirmation failed: The plantation name typed does not match.");
+        }
+
+        // Clean up dependent entities
+        System.out.println("DEBUG: COMMENCING FULL WIPE for plantation: " + plantation.getName());
+
+        // 1. Delete specialized records
+        taskRepository.deleteByPlantation(plantation);
+        harvestRepository.deleteByPlantation(plantation);
+        attendanceRepository.deleteByPlantation(plantation);
+        payrollRepository.deleteByPlantation(plantation);
+        
+        // Items and stock
+        stockEntryRepository.deleteByPlantation(plantation);
+        inventoryRepository.deleteByPlantation(plantation);
+        
+        // Plots and factories
+        plotRepository.deleteByPlantation(plantation);
+        factoryRepository.deleteByPlantation(plantation);
+
+        // 2. Clear worker references in User entity before deleting Worker entity
+        List<User> affectedUsers = userRepository.findByPlantation(plantation);
+        for (User u : affectedUsers) {
+            u.setPlantation(null);
+            u.getRoles().remove(Role.WORKER);
+            u.getRoles().remove(Role.CLERK);
+            userRepository.save(u);
+        }
+
+        // 3. Delete Worker table entries
+        workerRepository.deleteByPlantation(plantation);
+
+        // 4. Update the owner
+        owner.setPlantation(null);
+        owner.getRoles().remove(Role.OWNER);
+        userRepository.save(owner);
+
+        // 5. Update Clerk Metadata (remove role and plantationId)
+        clerkService.updateUserMetadata(clerkId, null, null);
+
+        // 6. Delete the Plantation itself
+        plantationRepository.delete(plantation);
+        
+        System.out.println("DEBUG: Plantation " + confirmedName + " and all its data have been permanently deleted.");
+    }
+
+    public void validatePlantationPin(String pin) {
+        if (requiredCreationPin != null && !requiredCreationPin.equals(pin)) {
+            throw new RuntimeException("Invalid Administrative PIN. Contact system administrator.");
+        }
     }
 }

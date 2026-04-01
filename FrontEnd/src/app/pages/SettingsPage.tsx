@@ -1,10 +1,24 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useLanguage, Language } from '@/contexts/LanguageContext';
 import { useUser, useAuth } from "@clerk/clerk-react";
-import { Globe, User, Bell, Shield, Sprout, MapPin, Maximize, QrCode, Download, Monitor, Smartphone, Apple, Loader2 } from 'lucide-react';
+import { Globe, User, Bell, Shield, Sprout, MapPin, Maximize, QrCode, Download, Monitor, Smartphone, Apple, Loader2, Trash2, AlertTriangle } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/app/components/ui/alert-dialog";
+import { Input } from "@/app/components/ui/input";
+import { Button } from "@/app/components/ui/button";
 
 export function SettingsPage() {
   const { language, setLanguage, t } = useLanguage();
@@ -113,51 +127,11 @@ export function SettingsPage() {
         </div>
       </div>
 
-      {/* Notification Settings */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="p-2 rounded-lg bg-orange-100">
-            <Bell className="w-5 h-5 text-orange-700" />
-          </div>
-          <div>
-            <h3 className="font-semibold text-gray-900">Notifications</h3>
-            <p className="text-sm text-gray-600">Manage notification preferences</p>
-          </div>
-        </div>
-
-        <div className="space-y-3">
-          {[
-            { label: 'Weather alerts', enabled: true },
-            { label: 'Low inventory warnings', enabled: true },
-            { label: 'Task reminders', enabled: false },
-            { label: 'Disease detection alerts', enabled: true },
-          ].map((item, i) => (
-            <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-              <span className="text-sm font-medium text-gray-900">{item.label}</span>
-              <button
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${item.enabled ? 'bg-green-600' : 'bg-gray-300'
-                  }`}
-              >
-                <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${item.enabled ? 'translate-x-6' : 'translate-x-1'
-                    }`}
-                />
-              </button>
-            </div>
-          ))}
-        </div>
-      </div>
-
       {/* Security PIN Settings */}
       <PinSettings />
 
       {/* Personal Profile Settings */}
       <PersonalProfile />
-
-      {/* Worker QR Settings (Only for workers) */}
-      {(userRole.toLowerCase() === 'worker' || userRole.toLowerCase() === 'clerk') && (
-        <WorkerQRSettings />
-      )}
 
       {plantation && (
         <PlantationCard plantation={plantation} loading={loadingPlantation} userRole={userRole} />
@@ -169,6 +143,11 @@ export function SettingsPage() {
 
       {/* PWA Installation Notice */}
       <PWAInstallNotice />
+
+      {/* Danger Zone */}
+      {userRole.toLowerCase() === 'owner' && plantation && (
+        <DangerZone plantation={plantation} />
+      )}
 
     </div>
   );
@@ -389,6 +368,21 @@ function PlantationForm() {
     creationPin: ''
   });
 
+  const handleVerifyPin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    try {
+      const token = await getToken();
+      await api.validatePlantationPin(formData.creationPin, token || undefined);
+      setStep('FORM');
+    } catch (err: any) {
+      setError(err.message || 'Invalid Administrative PIN');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -468,7 +462,7 @@ function PlantationForm() {
           Plantation created successfully! Redirecting...
         </div>
       ) : (
-        <form onSubmit={step === 'PIN' ? (e) => { e.preventDefault(); setStep('FORM'); } : handleSubmit} className="space-y-4">
+        <form onSubmit={step === 'PIN' ? handleVerifyPin : handleSubmit} className="space-y-4">
           {error && (
             <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative text-left">
               {error}
@@ -489,9 +483,10 @@ function PlantationForm() {
               />
               <button
                 type="submit"
-                className="w-full py-3 bg-gray-900 text-white rounded-xl font-bold hover:bg-black transition-colors"
+                disabled={loading}
+                className="w-full py-3 bg-gray-900 text-white rounded-xl font-bold hover:bg-black transition-colors disabled:opacity-50"
               >
-                Verify PIN
+                {loading ? 'Verifying...' : 'Verify PIN'}
               </button>
             </div>
           ) : (
@@ -871,171 +866,99 @@ function PersonalProfile() {
   );
 }
 
-function WorkerQRSettings() {
+function DangerZone({ plantation }: { plantation: any }) {
   const { user } = useUser();
   const { getToken } = useAuth();
-  const [plantations, setPlantations] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [isGenerating, setIsGenerating] = useState(false);
+  const navigate = useNavigate();
+  const [confirmName, setConfirmName] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
 
-  useEffect(() => {
-    const fetchWorkerData = async () => {
-      if (!user?.id) return;
-      try {
-        const token = await getToken();
-        // Fetch plantations where this user is a worker
-        const data = await api.getWorkerPlantations(user.id, token || undefined);
-        setPlantations(data);
-      } catch (err) {
-        console.error('Failed to fetch worker plantations:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchWorkerData();
-  }, [user?.id]);
+  const handleDelete = async () => {
+    if (confirmName !== plantation.name) return;
 
-  const handleGenerate = async (workerId: number) => {
-    setIsGenerating(true);
+    setIsDeleting(true);
     try {
       const token = await getToken();
-      await api.generateWorkerQr(workerId, token || undefined);
-      toast.success('QR Code generated successfully!');
-      // Refresh data
-      const updatedData = await api.getWorkerPlantations(user?.id || '', token || undefined);
-      setPlantations(updatedData);
+      const success = await api.deletePlantation(user?.id || '', confirmName, token || undefined);
+      if (success) {
+        toast.success("Plantation deleted successfully");
+        window.location.href = '/';
+      }
     } catch (err: any) {
-      toast.error('Failed to generate QR code: ' + err.message);
+      toast.error(err.message || "Failed to delete plantation");
     } finally {
-      setIsGenerating(false);
+      setIsDeleting(false);
+      setIsOpen(false);
     }
   };
-
-  const downloadQR = (qrCode: string, name: string) => {
-    const svg = document.getElementById(`qr-${qrCode}`);
-    if (!svg) {
-      toast.error("Could not find QR code element for download");
-      return;
-    }
-
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    const svgData = new XMLSerializer().serializeToString(svg);
-    const img = new Image();
-    // Wrap in a Blob and create a URL
-    const svgBlob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
-    const url = URL.createObjectURL(svgBlob);
-
-    img.onload = () => {
-      // Scale up for high resolution
-      const scale = 4;
-      canvas.width = (svg as any).width.baseVal.value * scale;
-      canvas.height = (svg as any).height.baseVal.value * scale;
-      
-      ctx.fillStyle = "white";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      
-      const pngUrl = canvas.toDataURL("image/png");
-      const downloadLink = document.createElement("a");
-      downloadLink.href = pngUrl;
-      downloadLink.download = `QR-Attendance-${name}.png`;
-      document.body.appendChild(downloadLink);
-      downloadLink.click();
-
-      // Revoke the Object URL and remove element after a short delay
-      setTimeout(() => {
-        URL.revokeObjectURL(url);
-        document.body.removeChild(downloadLink);
-      }, 100);
-    };
-
-    img.onerror = () => {
-      toast.error("Failed to convert QR code to PNG");
-      URL.revokeObjectURL(url);
-    };
-
-    img.src = url;
-  };
-
-  if (loading) return (
-    <div className="bg-white rounded-lg border border-gray-200 p-12 shadow-sm mt-6 flex flex-col items-center justify-center gap-3">
-      <Loader2 className="w-8 h-8 animate-spin text-orange-600" />
-      <p className="text-sm font-medium text-gray-500">Fetching attendance QR codes...</p>
-    </div>
-  );
-  
-  if (plantations.length === 0) return (
-    <div className="bg-white rounded-lg border border-gray-200 p-10 shadow-sm mt-6 text-center">
-      <div className="mx-auto w-16 h-16 bg-orange-50 rounded-full flex items-center justify-center mb-4">
-        <QrCode className="w-8 h-8 text-orange-400" />
-      </div>
-      <h3 className="text-lg font-bold text-gray-900 mb-2">No Attendance QR Codes</h3>
-      <p className="text-sm text-gray-500 max-w-sm mx-auto mb-6">
-        You haven't been assigned to any plantations yet. Have your estate owner add you as a worker using your registered email: <span className="font-bold text-gray-700">{user?.primaryEmailAddress?.emailAddress}</span>
-      </p>
-      <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 rounded-lg text-xs font-medium border border-blue-100">
-        <Monitor className="w-4 h-4" />
-        QR codes appear here once assigned
-      </div>
-    </div>
-  );
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm mt-6">
-      <div className="flex items-center gap-3 mb-6">
-        <div className="p-2 rounded-lg bg-orange-100">
-          <QrCode className="w-5 h-5 text-orange-700" />
-        </div>
-        <div>
-          <h3 className="font-semibold text-gray-900 text-left">Attendance QR Codes</h3>
-          <p className="text-sm text-gray-600 text-left">Generate and download your unique QR codes for attendance marking.</p>
-        </div>
-      </div>
-
-      <div className="space-y-6">
-        {plantations.map((p) => (
-          <div key={p.id} className="p-4 bg-gray-50 rounded-xl border border-gray-100 flex flex-col md:flex-row items-center gap-6">
-            <div className="flex-1 text-left">
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Plantation / Estate</p>
-              <h4 className="font-bold text-gray-900 text-lg">{p.name}</h4>
-              <p className="text-sm text-gray-500">{p.location}</p>
-              <div className="mt-4">
-                {!p.qrCode ? (
-                  <button
-                    onClick={() => handleGenerate(p.workerId)}
-                    disabled={isGenerating}
-                    className="px-4 py-2 bg-orange-600 text-white rounded-lg text-sm font-bold hover:bg-orange-700 disabled:opacity-50 transition-colors"
-                  >
-                    {isGenerating ? 'Generating...' : 'Generate My QR Code'}
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => downloadQR(p.qrCode, p.name)}
-                    className="flex items-center gap-2 text-orange-600 font-bold text-sm hover:underline"
-                  >
-                    <Download className="w-4 h-4" />
-                    Download QR Code (PNG)
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {p.qrCode && (
-              <div className="p-3 bg-white rounded-lg shadow-sm border border-gray-200">
-                <QRCodeSVG
-                  id={`qr-${p.qrCode}`}
-                  value={p.qrCode}
-                  size={120}
-                  level="H"
-                  includeMargin={true}
-                />
-              </div>
-            )}
+    <div className="mt-12 pt-8 border-t border-red-100">
+      <div className="bg-red-50 rounded-xl border border-red-200 p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-2 rounded-lg bg-red-100">
+            <Trash2 className="w-5 h-5 text-red-600" />
           </div>
-        ))}
+          <div>
+            <h3 className="font-bold text-red-900">Danger Zone</h3>
+            <p className="text-sm text-red-700">Irreversible actions for your plantation</p>
+          </div>
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 bg-white rounded-lg border border-red-100">
+          <div>
+            <p className="font-bold text-gray-900">Delete this plantation</p>
+            <p className="text-sm text-gray-500">All data including tasks, harvests, and worker history will be permanently wiped.</p>
+          </div>
+
+          <AlertDialog open={isOpen} onOpenChange={setIsOpen}>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" className="font-bold">
+                Delete Plantation
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent className="bg-white">
+              <AlertDialogHeader>
+                <div className="flex items-center gap-3 mb-2 text-red-600">
+                  <AlertTriangle className="w-6 h-6" />
+                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                </div>
+                <AlertDialogDescription className="text-gray-600 space-y-3">
+                  <p>
+                    This action <strong className="text-red-900">cannot be undone</strong>. This will permanently delete 
+                    the <strong className="text-gray-900 font-bold">"{plantation.name}"</strong> estate and all its associated data.
+                  </p>
+                  <p className="p-3 bg-gray-50 rounded border border-gray-200 text-xs text-gray-500">
+                    Workers will be unassigned, history will be wiped, and your role will be reset.
+                  </p>
+                  <div className="pt-2">
+                    <p className="mb-2 text-sm font-medium text-gray-900">Please type <span className="font-mono font-bold text-red-600"> {plantation.name} </span> to confirm.</p>
+                    <Input
+                      placeholder="Type plantation name"
+                      value={confirmName}
+                      onChange={(e) => setConfirmName(e.target.value)}
+                      className="border-red-200 focus:ring-red-500"
+                    />
+                  </div>
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => setConfirmName('')}>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleDelete();
+                  }}
+                  disabled={confirmName !== plantation.name || isDeleting}
+                  className="bg-red-600 hover:bg-red-700 text-white font-bold disabled:opacity-50"
+                >
+                  {isDeleting ? 'Deleting...' : 'Permanently Delete'}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
       </div>
     </div>
   );

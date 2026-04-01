@@ -18,4 +18,6 @@ public interface WorkerRepository extends JpaRepository<Worker, Long> {
     java.util.Optional<Worker> findByQrCode(String qrCode);
 
     List<Worker> findByUser(online.jayashan.teaplanter.entity.User user);
+
+    void deleteByPlantation(online.jayashan.teaplanter.entity.Plantation plantation);
 }

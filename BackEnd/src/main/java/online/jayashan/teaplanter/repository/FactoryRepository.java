@@ -9,4 +9,6 @@ import java.util.List;
 @Repository
 public interface FactoryRepository extends JpaRepository<Factory, Long> {
     List<Factory> findByPlantation(online.jayashan.teaplanter.entity.Plantation plantation);
+
+    void deleteByPlantation(online.jayashan.teaplanter.entity.Plantation plantation);
 }

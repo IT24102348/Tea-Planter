@@ -24,4 +24,6 @@ public interface HarvestRepository extends JpaRepository<Harvest, Long> {
     List<Harvest> findByPlantation(online.jayashan.teaplanter.entity.Plantation plantation);
 
     List<Harvest> findByWorkerAndPlantation(Worker worker, online.jayashan.teaplanter.entity.Plantation plantation);
+
+    void deleteByPlantation(online.jayashan.teaplanter.entity.Plantation plantation);
 }

@@ -24,4 +24,6 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
 
     List<Task> findByAssignedWorkerAndPlantation(Worker worker,
             online.jayashan.teaplanter.entity.Plantation plantation);
+
+    void deleteByPlantation(online.jayashan.teaplanter.entity.Plantation plantation);
 }

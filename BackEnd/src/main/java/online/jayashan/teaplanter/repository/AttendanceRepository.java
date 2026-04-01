@@ -17,4 +17,6 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
     List<Attendance> findByPlantation(online.jayashan.teaplanter.entity.Plantation plantation);
 
     List<Attendance> findByWorkerAndPlantation(Worker worker, online.jayashan.teaplanter.entity.Plantation plantation);
+
+    void deleteByPlantation(online.jayashan.teaplanter.entity.Plantation plantation);
 }

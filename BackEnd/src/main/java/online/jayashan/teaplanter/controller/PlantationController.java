@@ -27,4 +27,14 @@ public class PlantationController {
     public Plantation updatePlantation(@RequestBody Plantation plantation, @RequestParam String clerkId) {
         return plantationService.updatePlantation(plantation, clerkId);
     }
+
+    @DeleteMapping
+    public void deletePlantation(@RequestParam String clerkId, @RequestParam String name) {
+        plantationService.deletePlantation(clerkId, name);
+    }
+
+    @PostMapping("/validate-pin")
+    public void validatePin(@RequestParam String pin) {
+        plantationService.validatePlantationPin(pin);
+    }
 }

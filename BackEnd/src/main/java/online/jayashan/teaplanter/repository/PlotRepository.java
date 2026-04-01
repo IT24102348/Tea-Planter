@@ -12,4 +12,6 @@ public interface PlotRepository extends JpaRepository<Plot, Long> {
     Optional<Plot> findByBlockId(String blockId);
 
     List<Plot> findByPlantation(online.jayashan.teaplanter.entity.Plantation plantation);
+
+    void deleteByPlantation(online.jayashan.teaplanter.entity.Plantation plantation);
 }

@@ -57,6 +57,12 @@ public class EmailService {
     @Value("${mail.from:${spring.mail.username:}}")
     private String mailFrom;
 
+    @Value("${mail.from.payroll:${mail.from:${spring.mail.username:}}}")
+    private String mailFromPayroll;
+
+    @Value("${mail.from.tasks:${mail.from:${spring.mail.username:}}}")
+    private String mailFromTasks;
+
     @PostConstruct
     public void init() {
         System.out.println("DEBUG: EmailService initialized with Host: " + mailHost + ", Port: " + mailPort + ", User: " + mailUser + ", Provider: " + mailProvider);
@@ -94,7 +100,7 @@ public class EmailService {
             }
 
             String html = buildEnhancedHtmlContent(payroll, attendance, tasks, harvests);
-            sendEmail(to, subject, html, true);
+            sendEmail(mailFromPayroll, to, subject, html, true);
             System.out.println("DEBUG: Successfully sent background payroll email to " + to);
         } catch (Exception e) {
             System.err.println("CRITICAL: Failed to send background payroll email to " + to + ": " + e.getMessage());
@@ -159,7 +165,7 @@ public class EmailService {
 
             content.append("</div></div></body></html>");
 
-            sendEmail(to, subject, content.toString(), false);
+            sendEmail(mailFromTasks, to, subject, content.toString(), false);
             System.out.println("DEBUG: Successfully sent background task assignment email to " + to);
         } catch (Exception e) {
             System.err.println("CRITICAL: Failed to send background task assignment email to " + to + ": " + e.getMessage());
@@ -167,18 +173,20 @@ public class EmailService {
         }
     }
 
-    private void sendEmail(String to, String subject, String htmlContent, boolean includeInlineLogo) throws Exception {
+    private void sendEmail(String from, String to, String subject, String htmlContent, boolean includeInlineLogo) throws Exception {
         if ("resend".equalsIgnoreCase(mailProvider)) {
-            sendViaResend(to, subject, htmlContent);
+            sendViaResend(from, to, subject, htmlContent);
             return;
         }
-        sendViaSmtp(to, subject, htmlContent, includeInlineLogo);
+        sendViaSmtp(from, to, subject, htmlContent, includeInlineLogo);
     }
 
-    private void sendViaSmtp(String to, String subject, String htmlContent, boolean includeInlineLogo) throws Exception {
+    private void sendViaSmtp(String from, String to, String subject, String htmlContent, boolean includeInlineLogo) throws Exception {
         MimeMessage message = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-        helper.setFrom(mailUser);
+        
+        String fromAddress = (from == null || from.isBlank()) ? mailUser : from;
+        helper.setFrom(fromAddress);
         helper.setTo(to);
         helper.setSubject(subject);
         helper.setText(htmlContent, true);
@@ -197,14 +205,18 @@ public class EmailService {
         mailSender.send(message);
     }
 
-    private void sendViaResend(String to, String subject, String htmlContent) throws Exception {
+    private void sendViaResend(String from, String to, String subject, String htmlContent) throws Exception {
         if (resendApiKey == null || resendApiKey.isBlank()) {
             throw new IllegalStateException("MAIL_PROVIDER is resend but RESEND_API_KEY is missing.");
         }
 
-        String fromAddress = (mailFrom == null || mailFrom.isBlank()) ? mailUser : mailFrom;
+        String fromAddress = (from == null || from.isBlank()) ? mailFrom : from;
         if (fromAddress == null || fromAddress.isBlank()) {
-            throw new IllegalStateException("MAIL_FROM (or SPRING_MAIL_USERNAME fallback) is required for Resend.");
+            fromAddress = mailUser;
+        }
+        
+        if (fromAddress == null || fromAddress.isBlank()) {
+            throw new IllegalStateException("From address is required for Resend.");
         }
 
         String payload = "{\"from\":\"" + escapeJson(fromAddress) + "\"," +

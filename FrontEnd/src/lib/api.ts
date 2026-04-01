@@ -402,6 +402,16 @@ export const api = {
             headers: getHeaders(token),
             body: JSON.stringify(data),
         }).then(res => res.ok),
+    deletePlantation: (clerkId: string, name: string, token?: string) =>
+        fetch(`${API_BASE_URL}/plantations?clerkId=${clerkId}&name=${name}`, {
+            method: 'DELETE',
+            headers: getHeaders(token)
+        }).then(handleResponse),
+    validatePlantationPin: (pin: string, token?: string) =>
+        fetch(`${API_BASE_URL}/plantations/validate-pin?pin=${pin}`, {
+            method: 'POST',
+            headers: getHeaders(token)
+        }).then(handleResponse),
     // Users
     getMe: (clerkId: string, token?: string) =>
         fetch(`${API_BASE_URL}/users/me?clerkId=${clerkId}`, {
@@ -417,7 +427,7 @@ export const api = {
         fetch(`${API_BASE_URL}/users/pin?clerkId=${clerkId}&pin=${pin}`, {
             method: 'PUT',
             headers: getHeaders(token)
-        }).then(res => res.ok),
+        }).then(handleResponse),
 
 
     // Worker Dashboard

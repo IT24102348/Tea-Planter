@@ -8,4 +8,6 @@ import org.springframework.stereotype.Repository;
 public interface InventoryRepository extends JpaRepository<InventoryItem, Long> {
     java.util.List<online.jayashan.teaplanter.entity.InventoryItem> findByPlantation(
             online.jayashan.teaplanter.entity.Plantation plantation);
+
+    void deleteByPlantation(online.jayashan.teaplanter.entity.Plantation plantation);
 }

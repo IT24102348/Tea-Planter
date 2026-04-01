@@ -17,4 +17,6 @@ public interface StockEntryRepository extends JpaRepository<StockEntry, Long> {
     List<StockEntry> findByEntryDateBetween(LocalDateTime start, LocalDateTime end);
 
     List<StockEntry> findByPlantation(online.jayashan.teaplanter.entity.Plantation plantation);
+
+    void deleteByPlantation(online.jayashan.teaplanter.entity.Plantation plantation);
 }

@@ -22,4 +22,6 @@ public interface PayrollRepository extends JpaRepository<Payroll, Long> {
     boolean existsByWorkerAndMonth(Worker worker, java.time.LocalDate month);
     
     java.util.Optional<Payroll> findByWorkerAndMonth(Worker worker, java.time.LocalDate month);
+
+    void deleteByPlantation(online.jayashan.teaplanter.entity.Plantation plantation);
 }

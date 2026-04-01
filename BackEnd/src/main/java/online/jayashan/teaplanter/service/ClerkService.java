@@ -27,12 +27,8 @@ public class ClerkService {
         headers.setBearerAuth(clerkSecretKey);
 
         Map<String, Object> publicMetadata = new HashMap<>();
-        if (role != null) {
-            publicMetadata.put("role", role.toLowerCase());
-        }
-        if (plantationId != null) {
-            publicMetadata.put("plantationId", plantationId);
-        }
+        publicMetadata.put("role", role != null ? role.toLowerCase() : null);
+        publicMetadata.put("plantationId", plantationId);
 
         Map<String, Object> body = new HashMap<>();
         body.put("public_metadata", publicMetadata);
