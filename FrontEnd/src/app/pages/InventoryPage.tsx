@@ -42,7 +42,8 @@ export function InventoryPage() {
     name: '',
     category: 'Fertilizer',
     unit: 'kg',
-    reorderLevel: ''
+    reorderLevel: '',
+    unitPrice: ''
   });
   const [stockFormData, setStockFormData] = useState({
     quantity: '',
@@ -107,7 +108,7 @@ export function InventoryPage() {
         ...formData,
         reorderLevel: parseFloat(formData.reorderLevel),
         currentStock: editingItem ? editingItem.currentStock : 0,
-        unitPrice: editingItem ? editingItem.unitPrice : 0
+        unitPrice: parseFloat(formData.unitPrice) || 0
       };
 
       console.log('Saving inventory item. Payload:', payload);
@@ -126,7 +127,8 @@ export function InventoryPage() {
         name: '',
         category: 'Fertilizer',
         unit: 'kg',
-        reorderLevel: ''
+        reorderLevel: '',
+        unitPrice: ''
       });
       fetchInventory();
     } catch (error) {
@@ -195,7 +197,8 @@ export function InventoryPage() {
       name: item.name,
       category: item.category,
       unit: item.unit,
-      reorderLevel: item.reorderLevel.toString()
+      reorderLevel: item.reorderLevel.toString(),
+      unitPrice: (item.unitPrice || '').toString()
     });
     setShowModal(true);
   };
@@ -290,7 +293,7 @@ export function InventoryPage() {
   }, [inventory, searchTerm, filterCategory, filterStockStatus, sortBy]);
 
   const filteredLogs = useMemo(() => {
-    return logs.filter((log) => {
+    let result = logs.filter((log) => {
       const searchStr = logSearchTerm.toLowerCase();
       const matchesSearch =
         log.item.name.toLowerCase().includes(searchStr) ||
@@ -340,7 +343,8 @@ export function InventoryPage() {
                 name: '',
                 category: 'Fertilizer',
                 unit: 'kg',
-                reorderLevel: ''
+                reorderLevel: '',
+                unitPrice: ''
               });
               setShowModal(true);
             }}
@@ -462,6 +466,7 @@ export function InventoryPage() {
               <th className="text-left py-3 px-4 text-sm font-semibold text-gray-900">Category</th>
               <th className="text-left py-3 px-4 text-sm font-semibold text-gray-900">Quantity</th>
               <th className="text-left py-3 px-4 text-sm font-semibold text-gray-900">Min Stock</th>
+              <th className="text-left py-3 px-4 text-sm font-semibold text-gray-900">Unit Price</th>
               <th className="text-left py-3 px-4 text-sm font-semibold text-gray-900">Status</th>
               <th className="text-left py-3 px-4 text-sm font-semibold text-gray-900">Last Updated</th>
               <th className="text-left py-3 px-4 text-sm font-semibold text-gray-900">Actions</th>
@@ -486,6 +491,9 @@ export function InventoryPage() {
                   </td>
                   <td className="py-3 px-4 text-sm text-gray-600">
                     {item.reorderLevel} {item.unit}
+                  </td>
+                  <td className="py-3 px-4 text-sm text-gray-900 font-medium">
+                    LKR {item.unitPrice?.toLocaleString() || '0.00'}
                   </td>
                   <td className="py-3 px-4">
                     {isLowStock ? (
@@ -623,6 +631,21 @@ export function InventoryPage() {
                     placeholder="0.00"
                     value={formData.reorderLevel}
                     onChange={(e) => setFormData({ ...formData, reorderLevel: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Unit Price (LKR) *</label>
+                  <input
+                    required
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    onInvalid={(e) => (e.target as HTMLInputElement).setCustomValidity('Unit price must be a positive value.')}
+                    onInput={(e) => (e.target as HTMLInputElement).setCustomValidity('')}
+                    placeholder="0.00"
+                    value={formData.unitPrice}
+                    onChange={(e) => setFormData({ ...formData, unitPrice: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none"
                   />
                 </div>
@@ -834,6 +857,9 @@ export function InventoryPage() {
                       required
                       type="number"
                       step="0.01"
+                      min="0.01"
+                      onInvalid={(e) => (e.target as HTMLInputElement).setCustomValidity('Unit price must be a positive value.')}
+                      onInput={(e) => (e.target as HTMLInputElement).setCustomValidity('')}
                       value={stockFormData.unitPrice}
                       onChange={(e) => setStockFormData({ ...stockFormData, unitPrice: e.target.value })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none"
@@ -942,6 +968,7 @@ export function InventoryPage() {
                 <th className="text-left py-3 px-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Type</th>
                 <th className="text-left py-3 px-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Item</th>
                 <th className="text-left py-3 px-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Qty</th>
+                <th className="text-left py-3 px-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Unit Price</th>
                 <th className="text-left py-3 px-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Value</th>
                 <th className="text-right py-3 px-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
@@ -963,6 +990,9 @@ export function InventoryPage() {
                   <td className="py-3 px-4 text-sm font-medium text-gray-900">{log.item.name}</td>
                   <td className="py-3 px-4 text-sm font-bold text-gray-900">
                     {log.type === 'USAGE' ? '-' : '+'}{log.quantity} {log.item.unit}
+                  </td>
+                  <td className="py-3 px-4 text-sm text-gray-600">
+                    {log.unitPrice ? `LKR ${log.unitPrice.toLocaleString()}` : '-'}
                   </td>
                   <td className="py-3 px-4 text-sm text-gray-600">
                     {log.type === 'PURCHASE' ? `LKR ${(log.unitPrice * log.quantity).toLocaleString()}` : '-'}
