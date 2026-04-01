@@ -225,7 +225,7 @@ export function FinancialPage() {
   const handleGeneratePayroll = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.workerId || !formData.month) return;
-    
+
     setIsSubmitting(true);
     try {
       const token = await getToken();
@@ -248,7 +248,7 @@ export function FinancialPage() {
   const handleBulkGeneratePayroll = async () => {
     if (!plantationId) return;
     if (!confirm(`Generate payroll records for ALL workers for ${selectedMonth}? Existing records for this month will be skipped.`)) return;
-    
+
     setIsSubmitting(true);
     try {
       const token = await getToken();
@@ -324,7 +324,7 @@ export function FinancialPage() {
         await api.createIncome(payload, plantationId || undefined, token || undefined);
         alert('Paysheet recorded successfully!');
       }
-      
+
       setShowIncomeModal(false);
       setEditingIncome(null);
       fetchData();
@@ -350,10 +350,10 @@ export function FinancialPage() {
         plantationId: plantationId
       }, token || undefined);
       setShowDeliveryModal(false);
-      setDeliveryFormData({ 
-        factoryId: '', 
-        weight: '', 
-        deliveryDate: new Date().toISOString().split('T')[0] 
+      setDeliveryFormData({
+        factoryId: '',
+        weight: '',
+        deliveryDate: new Date().toISOString().split('T')[0]
       });
       fetchData();
       alert('Delivery recorded successfully!');
@@ -426,7 +426,7 @@ export function FinancialPage() {
 
   const handleSelectBankTransfer = async () => {
     if (!selectedPayrollForPayment) return;
-    
+
     setIsSubmitting(true);
     try {
       const token = await getToken();
@@ -472,7 +472,7 @@ export function FinancialPage() {
 
   const markAllAsPaid = async (payrollIds: number[]) => {
     if (!confirm(`Mark ${payrollIds.length} records as PAID via Bank Transfer?`)) return;
-    
+
     setIsSubmitting(true);
     try {
       const token = await getToken();
@@ -492,11 +492,11 @@ export function FinancialPage() {
 
     const scanned = decodedText.trim();
     const expected = selectedPayrollForPayment.worker.qrCode?.trim() || "";
-    
-    console.log("QR Scan Verification:", { 
-      scanned, 
-      expected, 
-      worker: selectedPayrollForPayment.worker.user?.name 
+
+    console.log("QR Scan Verification:", {
+      scanned,
+      expected,
+      worker: selectedPayrollForPayment.worker.user?.name
     });
 
     if (isProcessingScan.current) return;
@@ -505,10 +505,10 @@ export function FinancialPage() {
     if (scanned === expected && expected !== "") {
       setIsSubmitting(true);
       setQrError(null);
-      
+
       // Close immediate to prevent multiple scans
       setShowQRScanner(false);
-      
+
       try {
         const token = await getToken();
         await api.updatePayrollStatus(selectedPayrollForPayment.id, 'PAID', 'CASH', token || undefined);
@@ -596,7 +596,7 @@ export function FinancialPage() {
   const netProfit = useMemo(() => {
     return totalRevenue - totalExpenses;
   }, [totalRevenue, totalExpenses]);
-  
+
   const handleExport = async () => {
     if (isExporting) return;
     setIsExporting(true);
@@ -690,11 +690,10 @@ export function FinancialPage() {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id as any)}
-            className={`flex items-center whitespace-nowrap gap-2 px-6 py-3 text-sm font-bold border-b-2 transition-all ${
-              activeTab === tab.id
+            className={`flex items-center whitespace-nowrap gap-2 px-6 py-3 text-sm font-bold border-b-2 transition-all ${activeTab === tab.id
                 ? 'border-blue-600 text-blue-600 bg-blue-50/50 rounded-t-lg'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-            }`}
+              }`}
           >
             <tab.icon className="w-4 h-4" />
             {tab.label}
@@ -709,7 +708,7 @@ export function FinancialPage() {
               <h3 className="text-xl font-bold text-gray-900">Financial Performance</h3>
               <p className="text-sm text-gray-500">Overview of revenue, expenses and net profit</p>
             </div>
-            <button 
+            <button
               onClick={handleExport}
               disabled={isExporting}
               className="flex items-center justify-center gap-2 w-full sm:w-auto px-4 py-2 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-lg font-bold text-sm shadow-sm transition-all active:scale-95 disabled:opacity-50"
@@ -804,10 +803,10 @@ export function FinancialPage() {
                       contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
                     />
                     <Legend verticalAlign="bottom" height={36} iconType="circle" />
-                    <text x="50%" y="45%" textAnchor="middle" dominantBaseline="middle" className="text-xl font-black fill-gray-900">
+                    <text x="50%" y="45%" textAnchor="middle" dominantBaseline="middle" className="text-lg font-extrabold fill-gray-900">
                       LKR {totalRevenue.toLocaleString()}
                     </text>
-                    <text x="50%" y="52%" textAnchor="middle" dominantBaseline="middle" className="text-[10px] font-black fill-gray-400 uppercase tracking-widest">
+                    <text x="50%" y="52%" textAnchor="middle" dominantBaseline="middle" className="text-[10px] font-bold fill-gray-400 uppercase tracking-normal">
                       Total Revenue
                     </text>
                   </PieChart>
@@ -888,28 +887,28 @@ export function FinancialPage() {
                   className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
                 />
               </div>
-                <button
-                  onClick={() => setShowModal(true)}
-                  className="flex items-center justify-center gap-2 px-4 py-2 border border-blue-600 text-blue-600 hover:bg-blue-50 rounded-lg font-bold text-sm shadow-sm transition-all active:scale-95 col-span-2 sm:col-span-1 lg:col-auto w-full lg:w-auto whitespace-nowrap"
-                >
-                  <Plus className="w-4 h-4" />
-                  Generate Individual
-                </button>
-                <button
-                  onClick={() => setShowSalaryModal(true)}
-                  className="flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300 rounded-lg font-bold text-sm shadow-sm transition-all active:scale-95 col-span-2 sm:col-span-1 lg:col-auto w-full lg:w-auto whitespace-nowrap"
-                >
-                  <Activity className="w-4 h-4" />
-                  Manage Salaries
-                </button>
-                <button
-                  onClick={handleBulkGeneratePayroll}
-                  disabled={isSubmitting}
-                  className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-sm shadow-md transition-all active:scale-95 disabled:opacity-50 col-span-2 lg:col-auto w-full lg:w-auto whitespace-nowrap"
-                >
-                  {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                  Generate All
-                </button>
+              <button
+                onClick={() => setShowModal(true)}
+                className="flex items-center justify-center gap-2 px-4 py-2 border border-blue-600 text-blue-600 hover:bg-blue-50 rounded-lg font-bold text-sm shadow-sm transition-all active:scale-95 col-span-2 sm:col-span-1 lg:col-auto w-full lg:w-auto whitespace-nowrap"
+              >
+                <Plus className="w-4 h-4" />
+                Generate Individual
+              </button>
+              <button
+                onClick={() => setShowSalaryModal(true)}
+                className="flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300 rounded-lg font-bold text-sm shadow-sm transition-all active:scale-95 col-span-2 sm:col-span-1 lg:col-auto w-full lg:w-auto whitespace-nowrap"
+              >
+                <Activity className="w-4 h-4" />
+                Manage Salaries
+              </button>
+              <button
+                onClick={handleBulkGeneratePayroll}
+                disabled={isSubmitting}
+                className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-sm shadow-md transition-all active:scale-95 disabled:opacity-50 col-span-2 lg:col-auto w-full lg:w-auto whitespace-nowrap"
+              >
+                {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                Generate All
+              </button>
             </div>
           </div>
 
@@ -938,12 +937,11 @@ export function FinancialPage() {
                     <td className="px-4 py-4 text-right text-red-600 font-medium">-{payroll.deductions?.toLocaleString()}</td>
                     <td className="px-4 py-4 text-right font-bold text-blue-700 bg-blue-50/30">LKR {payroll.netPay?.toLocaleString()}</td>
                     <td className="px-4 py-4 text-right">
-                      <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                        payroll.status === 'PAID' ? 'bg-green-100 text-green-700' :
-                        payroll.status === 'APPROVED' ? 'bg-blue-100 text-blue-700' :
-                        payroll.status === 'PENDING' ? 'bg-orange-100 text-orange-700' :
-                        'bg-gray-100 text-gray-700'
-                      }`}>
+                      <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${payroll.status === 'PAID' ? 'bg-green-100 text-green-700' :
+                          payroll.status === 'APPROVED' ? 'bg-blue-100 text-blue-700' :
+                            payroll.status === 'PENDING' ? 'bg-orange-100 text-orange-700' :
+                              'bg-gray-100 text-gray-700'
+                        }`}>
                         {payroll.status}
                       </span>
                     </td>
@@ -987,13 +985,13 @@ export function FinancialPage() {
                               <Edit2 className="w-4 h-4" />
                             </button>
                             <button
-                               onClick={() => handleDeletePayroll(payroll.id)}
-                               disabled={isSubmitting}
-                               className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
-                               title="Delete"
-                             >
-                               {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                             </button>
+                              onClick={() => handleDeletePayroll(payroll.id)}
+                              disabled={isSubmitting}
+                              className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                              title="Delete"
+                            >
+                              {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                            </button>
                           </div>
                         )}
                       </div>
@@ -1018,7 +1016,7 @@ export function FinancialPage() {
                 onClick={() => {
                   const pending = payrolls.filter(p => p.status === 'APPROVED' && p.paymentMode === 'BANK');
                   if (pending.length === 0) return alert('No pending bank transfers to export.');
-                  
+
                   const headers = ["Worker Name", "Bank Name", "Branch", "Account Number", "Account Holder", "Net Pay (LKR)"];
                   const rows = pending.map(p => [
                     p.worker.user?.name || '',
@@ -1029,7 +1027,7 @@ export function FinancialPage() {
                     p.netPay.toString()
                   ]);
 
-                  const csvContent = "data:text/csv;charset=utf-8," 
+                  const csvContent = "data:text/csv;charset=utf-8,"
                     + headers.join(",") + "\n"
                     + rows.map(e => e.join(",")).join("\n");
 
@@ -1074,9 +1072,8 @@ export function FinancialPage() {
                   <tr key={payroll.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-4 py-4">
                       <p className="font-bold text-gray-900">{payroll.worker.user?.name}</p>
-                      <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase border ${
-                        payroll.status === 'PAID' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-blue-50 text-blue-700 border-blue-200'
-                      }`}>
+                      <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase border ${payroll.status === 'PAID' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-blue-50 text-blue-700 border-blue-200'
+                        }`}>
                         {payroll.status}
                       </span>
                     </td>
@@ -1088,7 +1085,7 @@ export function FinancialPage() {
                         </div>
                         <p className="text-xs text-gray-500 ml-5">{payroll.worker.user?.branchName || 'No Branch'}</p>
                         <div className="mt-2 text-xs font-mono text-blue-600 bg-blue-50 px-2 py-1 rounded inline-block w-fit">
-                           {payroll.worker.user?.accountNumber || 'MISSING ACCOUNT'}
+                          {payroll.worker.user?.accountNumber || 'MISSING ACCOUNT'}
                         </div>
                         <p className="text-[10px] text-gray-400 mt-1 uppercase tracking-tighter">Holder: {payroll.worker.user?.accountHolderName || 'N/A'}</p>
                       </div>
@@ -1097,7 +1094,7 @@ export function FinancialPage() {
                       <p className="text-lg font-bold text-gray-900">LKR {payroll.netPay?.toLocaleString()}</p>
                     </td>
                     <td className="px-4 py-4 text-center">
-                       {payroll.status === 'APPROVED' ? (
+                      {payroll.status === 'APPROVED' ? (
                         <div className="flex items-center justify-center gap-2">
                           <button
                             onClick={() => {
@@ -1110,28 +1107,28 @@ export function FinancialPage() {
                             {isSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Mark Paid'}
                           </button>
                           <div className="flex gap-1 border-l border-gray-200 pl-2">
-                             <button
-                                onClick={() => handleEditPayroll(payroll)}
-                                disabled={isSubmitting}
-                                className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50"
-                                title="Edit"
-                             >
-                                {isSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Edit2 className="w-3.5 h-3.5" />}
-                             </button>
-                             <button
-                                onClick={() => handleDeletePayroll(payroll.id)}
-                                disabled={isSubmitting}
-                                className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
-                                title="Delete"
-                             >
-                                {isSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
-                             </button>
-                            </div>
+                            <button
+                              onClick={() => handleEditPayroll(payroll)}
+                              disabled={isSubmitting}
+                              className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50"
+                              title="Edit"
+                            >
+                              {isSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Edit2 className="w-3.5 h-3.5" />}
+                            </button>
+                            <button
+                              onClick={() => handleDeletePayroll(payroll.id)}
+                              disabled={isSubmitting}
+                              className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                              title="Delete"
+                            >
+                              {isSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                            </button>
+                          </div>
                         </div>
                       ) : (
                         <div className="flex flex-col items-center gap-1">
-                           <CheckCircle className="w-5 h-5 text-green-600" />
-                           <p className="text-[9px] text-gray-400 font-bold uppercase">{new Date(payroll.paidDate || Date.now()).toLocaleDateString()}</p>
+                          <CheckCircle className="w-5 h-5 text-green-600" />
+                          <p className="text-[9px] text-gray-400 font-bold uppercase">{new Date(payroll.paidDate || Date.now()).toLocaleDateString()}</p>
                         </div>
                       )}
                     </td>
@@ -1140,7 +1137,7 @@ export function FinancialPage() {
                 {payrolls.filter(p => (p.status === 'APPROVED' && p.paymentMode === 'BANK') || (p.status === 'PAID' && p.paymentMode === 'BANK')).length === 0 && (
                   <tr>
                     <td colSpan={4} className="px-4 py-12 text-center text-gray-400 font-medium">
-                        No bank transfer records for this period.
+                      No bank transfer records for this period.
                     </td>
                   </tr>
                 )}
@@ -1311,7 +1308,7 @@ export function FinancialPage() {
                   <div>
                     <p className="text-sm font-bold text-amber-900">Record Already Exists</p>
                     <p className="text-xs text-amber-700 leading-relaxed mt-1">
-                      A payroll record for this worker already exists for the selected month. 
+                      A payroll record for this worker already exists for the selected month.
                       Please <strong>Edit</strong> the existing record instead of creating a new one.
                     </p>
                   </div>
@@ -1401,7 +1398,7 @@ export function FinancialPage() {
                 <h3 className="text-xl font-bold text-gray-900">Staff Salary Management</h3>
                 <p className="text-sm text-gray-500">Define fixed monthly salaries for administrative and support staff</p>
               </div>
-              <button 
+              <button
                 onClick={() => setShowSalaryModal(false)}
                 className="p-2 hover:bg-gray-200 rounded-full transition-colors"
                 title="Close Modal"
@@ -1409,7 +1406,7 @@ export function FinancialPage() {
                 <Plus className="w-6 h-6 rotate-45 text-gray-500" />
               </button>
             </div>
-            
+
             {/* Search & Filter for Staff Modal */}
             <div className="p-4 border-b border-gray-100 bg-white flex flex-col sm:flex-row gap-4 justify-between items-center">
               <div className="relative w-full sm:w-1/2">
@@ -1447,8 +1444,8 @@ export function FinancialPage() {
                     <Activity className="w-8 h-8 text-gray-400" />
                   </div>
                   <p className="text-gray-500 font-medium">
-                    {staffSearchTerm || staffRoleFilter !== 'ALL' 
-                      ? 'No staff members match the current search filters.' 
+                    {staffSearchTerm || staffRoleFilter !== 'ALL'
+                      ? 'No staff members match the current search filters.'
                       : 'No staff members found with fixed salary roles.'}
                   </p>
                   {(!staffSearchTerm && staffRoleFilter === 'ALL') && (
@@ -1515,9 +1512,9 @@ export function FinancialPage() {
                 </div>
               )}
             </div>
-            
+
             <div className="p-6 border-t border-gray-100 bg-gray-50 flex justify-end">
-              <button 
+              <button
                 onClick={() => setShowSalaryModal(false)}
                 className="px-6 py-2 bg-gray-900 text-white rounded-lg font-bold text-sm hover:bg-black transition-all active:scale-95"
               >
@@ -1568,9 +1565,9 @@ export function FinancialPage() {
                   min="0.01"
                   onInvalid={(e) => (e.target as HTMLInputElement).setCustomValidity('Weight must be a positive value greater than zero.')}
                   onInput={(e) => (e.target as HTMLInputElement).setCustomValidity('')}
-                    value={deliveryFormData.weight ?? ''}
-                    onChange={(e) => setDeliveryFormData({ ...deliveryFormData, weight: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
+                  value={deliveryFormData.weight ?? ''}
+                  onChange={(e) => setDeliveryFormData({ ...deliveryFormData, weight: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
                 />
               </div>
 
@@ -1684,7 +1681,7 @@ export function FinancialPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1 text-red-500">Transport Cut (LKR)</label>
-                   <input
+                  <input
                     type="number"
                     min="0"
                     onInvalid={(e) => (e.target as HTMLInputElement).setCustomValidity('Transport deduction cannot be negative.')}
@@ -1696,7 +1693,7 @@ export function FinancialPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1 text-red-500">Other Cutouts (LKR)</label>
-                   <input
+                  <input
                     type="number"
                     min="0"
                     onInvalid={(e) => (e.target as HTMLInputElement).setCustomValidity('Other deductions cannot be negative.')}
@@ -1853,7 +1850,7 @@ export function FinancialPage() {
               <h2 className="text-xl font-bold text-blue-900 mb-1">Select Payment Method</h2>
               <p className="text-sm text-blue-700">Payment for {selectedPayrollForPayment.worker.user?.name}</p>
             </div>
-            
+
             <div className="p-6 space-y-3">
               <button
                 onClick={() => handleSelectBankTransfer()}
@@ -1933,11 +1930,11 @@ export function FinancialPage() {
                   <p className="text-sm font-bold text-green-900 uppercase tracking-widest">Verifying worker...</p>
                 </div>
               )}
-              
+
               <div id="qr-reader" className="w-full rounded-xl overflow-hidden border-2 border-dashed border-green-200 bg-gray-50 aspect-square">
-                  {/* html5-qrcode renderer will mount here */}
+                {/* html5-qrcode renderer will mount here */}
               </div>
-              
+
               <p className="text-center text-sm text-gray-500 mt-4 font-medium px-4">
                 Scan <span className="font-bold text-green-700">{selectedPayrollForPayment.worker.user?.name}</span> QR to verify payment. Position the worker's QR code within the frame to scan.
               </p>
@@ -1964,7 +1961,7 @@ export function FinancialPage() {
           </div>
         </div>
       )}
-      
+
       {/* Global Loading Overlay */}
       {isSubmitting && (
         <div className="fixed inset-0 bg-black/20 backdrop-blur-[2px] z-[100] flex items-center justify-center animate-in fade-in duration-200">
@@ -1982,14 +1979,14 @@ export function FinancialPage() {
 function QRScannerLogic({ onScanSuccess }: { onScanSuccess: (text: string) => void }) {
   useEffect(() => {
     const html5QrCode = new Html5Qrcode("qr-reader");
-    
+
     const startScanner = async () => {
       try {
         await html5QrCode.start(
-          { facingMode: "environment" }, 
+          { facingMode: "environment" },
           { fps: 10, qrbox: { width: 250, height: 250 } },
           onScanSuccess,
-          () => {} // silence errors to avoid console noise
+          () => { } // silence errors to avoid console noise
         );
       } catch (err) {
         console.error("Unable to start scanning:", err);
