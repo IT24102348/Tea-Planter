@@ -46,10 +46,8 @@ export function PublicFooter() {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 relative z-10">
                 {/* Brand & Feedback Form (Span 5) */}
                 <div className="lg:col-span-5 flex flex-col text-left">
-                    <div className="flex items-center gap-3 mb-8">
-                        <div className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center bg-white/10 p-1">
-                            <img src="/src/app/assets/logo.png" alt="Tea Planter Logo" className="w-full h-full object-contain" />
-                        </div>
+                    <div className="flex items-center gap-3 mb-8 text-left">
+                        <img src="/src/app/assets/TeaPlanterLogo3.png" alt="Logo" className="w-24 h-24 object-contain" />
                         <span className="text-2xl font-bold tracking-tight text-white">Tea Planter</span>
                     </div>
                     <p className="text-gray-400 mb-10 leading-relaxed max-w-md">
