@@ -1,5 +1,7 @@
 package online.jayashan.teaplanter.service;
 
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.ObjectNode;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import online.jayashan.teaplanter.entity.Attendance;
@@ -17,6 +19,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.File;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -44,9 +50,21 @@ public class EmailService {
     @Value("${spring.mail.username:Not Configured}")
     private String mailUser;
 
+    @Value("${mail.provider:smtp}")
+    private String mailProvider;
+
+    @Value("${resend.api.key:}")
+    private String resendApiKey;
+
+    @Value("${mail.from:}")
+    private String mailFrom;
+
+    private final HttpClient httpClient = HttpClient.newHttpClient();
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
     @PostConstruct
     public void init() {
-        System.out.println("DEBUG: EmailService initialized with Host: " + mailHost + ", Port: " + mailPort + ", User: " + mailUser);
+        System.out.println("DEBUG: EmailService initialized with Host: " + mailHost + ", Port: " + mailPort + ", User: " + mailUser + ", Provider: " + mailProvider);
     }
 
     @Async
@@ -80,27 +98,8 @@ public class EmailService {
                 harvests = harvestRepository.findByWorkerAndHarvestDateBetween(payroll.getWorker(), start, end);
             }
 
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-
-            helper.setFrom(mailUser);
-            helper.setTo(to);
-            helper.setSubject(subject);
-            helper.setText(buildEnhancedHtmlContent(payroll, attendance, tasks, harvests), true);
-            
-            // Use a relative path from the project root instead of a hardcoded Windows drive
-            File logoFile = new File("Pics/TeaPlanterLogo3.png");
-            if (!logoFile.exists()) {
-                // If running from within the BackEnd directory
-                logoFile = new File("../Pics/TeaPlanterLogo3.png");
-            }
-
-            if (logoFile.exists()) {
-                FileSystemResource logo = new FileSystemResource(logoFile);
-                helper.addInline("logo", logo);
-            }
-
-            mailSender.send(message);
+            String html = buildEnhancedHtmlContent(payroll, attendance, tasks, harvests);
+            sendEmail(to, subject, html, true);
             System.out.println("DEBUG: Successfully sent background payroll email to " + to);
         } catch (Exception e) {
             System.err.println("CRITICAL: Failed to send background payroll email to " + to + ": " + e.getMessage());
@@ -131,13 +130,6 @@ public class EmailService {
         String workerName = task.getAssignedWorker().getUser().getName();
 
         try {
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-
-            helper.setFrom(mailUser);
-            helper.setTo(to);
-            helper.setSubject(subject);
-
             StringBuilder content = new StringBuilder();
             content.append("<html><body style='font-family: \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px;'>");
             content.append("<div style='max-width: 600px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;'>");
@@ -172,13 +164,74 @@ public class EmailService {
 
             content.append("</div></div></body></html>");
 
-            helper.setText(content.toString(), true);
-            mailSender.send(message);
+            sendEmail(to, subject, content.toString(), false);
             System.out.println("DEBUG: Successfully sent background task assignment email to " + to);
         } catch (Exception e) {
             System.err.println("CRITICAL: Failed to send background task assignment email to " + to + ": " + e.getMessage());
             e.printStackTrace();
         }
+    }
+
+    private void sendEmail(String to, String subject, String html, boolean includeInlineLogoForSmtp) throws Exception {
+        if ("resend".equalsIgnoreCase(mailProvider)) {
+            sendViaResend(to, subject, html);
+            return;
+        }
+        sendViaSmtp(to, subject, html, includeInlineLogoForSmtp);
+    }
+
+    private void sendViaSmtp(String to, String subject, String html, boolean includeInlineLogo) throws Exception {
+        MimeMessage message = mailSender.createMimeMessage();
+        MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+        helper.setFrom(resolveFromAddress());
+        helper.setTo(to);
+        helper.setSubject(subject);
+        helper.setText(html, true);
+
+        if (includeInlineLogo) {
+            File logoFile = new File("Pics/TeaPlanterLogo3.png");
+            if (!logoFile.exists()) {
+                logoFile = new File("../Pics/TeaPlanterLogo3.png");
+            }
+            if (logoFile.exists()) {
+                FileSystemResource logo = new FileSystemResource(logoFile);
+                helper.addInline("logo", logo);
+            }
+        }
+
+        mailSender.send(message);
+    }
+
+    private void sendViaResend(String to, String subject, String html) throws Exception {
+        if (resendApiKey == null || resendApiKey.isBlank()) {
+            throw new RuntimeException("mail.provider is 'resend' but resend.api.key is not set");
+        }
+
+        ObjectNode payload = objectMapper.createObjectNode();
+        payload.put("from", resolveFromAddress());
+        payload.put("to", to);
+        payload.put("subject", subject);
+        payload.put("html", html);
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create("https://api.resend.com/emails"))
+                .header("Authorization", "Bearer " + resendApiKey)
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(payload)))
+                .build();
+
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() < 200 || response.statusCode() >= 300) {
+            throw new RuntimeException("Resend API failed with status " + response.statusCode() + ": " + response.body());
+        }
+    }
+
+    private String resolveFromAddress() {
+        if (mailFrom != null && !mailFrom.isBlank()) {
+            return mailFrom;
+        }
+        return mailUser;
     }
 
     private String buildEnhancedHtmlContent(Payroll payroll, List<Attendance> attendance, List<Task> tasks, List<Harvest> harvests) {
