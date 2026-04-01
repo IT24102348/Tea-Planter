@@ -41,6 +41,11 @@ public class PlantationService {
         User user = userRepository.findByClerkId(clerkId)
                 .orElseThrow(() -> new RuntimeException("User not found: " + clerkId));
 
+        // Validation: If user is already assigned to a plantation (as worker/clerk), they cannot create one
+        if (user.getPlantation() != null && !user.getRoles().contains(Role.OWNER)) {
+            throw new RuntimeException("You are already assigned as a worker or clerk to another plantation. Please have the estate owner remove you before creating your own estate.");
+        }
+
         return plantationRepository.findByOwner(user)
                 .map(existing -> {
                     existing.setName(plantation.getName());
@@ -144,6 +149,8 @@ public class PlantationService {
             u.getRoles().remove(Role.WORKER);
             u.getRoles().remove(Role.CLERK);
             userRepository.save(u);
+            // Revoke role and plantation in Clerk metadata too
+            clerkService.updateUserMetadata(u.getClerkId(), null, null);
         }
 
         // 3. Delete Worker table entries
