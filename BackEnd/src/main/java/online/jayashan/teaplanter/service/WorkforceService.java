@@ -253,6 +253,7 @@ public class WorkforceService {
     @Transactional
     public void deleteWorker(Long id) {
         Worker worker = getWorkerById(id);
+        User user = worker.getUser();
 
         // Delete all dependent records first to avoid foreign key violations
         attendanceRepository.deleteAll(attendanceRepository.findByWorker(worker));
@@ -263,6 +264,18 @@ public class WorkforceService {
 
         // Now safe to delete the worker
         workerRepository.delete(worker);
+
+        // Reset user to "brand new" state
+        if (user != null) {
+            log.info("Resetting User (CLERK_ID: {}) to available state after worker deletion.", user.getClerkId());
+            user.getRoles().remove(online.jayashan.teaplanter.entity.Role.WORKER);
+            user.getRoles().remove(online.jayashan.teaplanter.entity.Role.CLERK);
+            user.setPlantation(null);
+            userRepository.save(user);
+
+            // Sync to Clerk metadata
+            clerkService.updateUserMetadata(user.getClerkId(), "none", null);
+        }
     }
 
     // Attendance Management
