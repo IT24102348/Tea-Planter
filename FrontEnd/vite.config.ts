@@ -1,4 +1,5 @@
 import { defineConfig } from 'vite'
+import type { UserConfig } from 'vitest/config'
 import path from 'path'
 import fs from 'fs'
 import tailwindcss from '@tailwindcss/vite'
@@ -72,5 +73,10 @@ export default defineConfig({
     'import.meta.env.VITE_CLERK_PUBLISHABLE_KEY': JSON.stringify(getEnv('VITE_CLERK_PUBLISHABLE_KEY')),
     'import.meta.env.VITE_ML_API_URL': JSON.stringify(getEnv('VITE_ML_API_URL')),
     'import.meta.env.VITE_API_BASE_URL': JSON.stringify(getEnv('VITE_API_BASE_URL')),
-  }
-})
+  },
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: './src/test/setup.ts',
+  },
+} as UserConfig)

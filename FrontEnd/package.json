@@ -6,7 +6,8 @@
   "scripts": {
     "build": "vite build",
     "dev": "vite",
-    "start": "npx serve -s dist -l $PORT"
+    "start": "npx serve -s dist -l $PORT",
+    "test": "vitest run"
   },
   "dependencies": {
     "@clerk/clerk-react": "^5.60.0",
@@ -73,11 +74,16 @@
   },
   "devDependencies": {
     "@tailwindcss/vite": "4.1.12",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/leaflet": "^1.9.21",
     "@vitejs/plugin-react": "4.7.0",
+    "jsdom": "^29.0.1",
     "tailwindcss": "4.1.12",
     "vite": "6.3.5",
-    "vite-plugin-pwa": "^1.2.0"
+    "vite-plugin-pwa": "^1.2.0",
+    "vitest": "^4.1.2"
   },
   "pnpm": {
     "overrides": {
