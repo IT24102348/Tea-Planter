@@ -19,7 +19,8 @@ import {
   Truck,
   Building2,
   User as UserIcon,
-  Menu
+  Menu,
+  TrendingUp
 } from 'lucide-react';
 import { useState } from 'react';
 import logo from '@/app/assets/TeaPlanterLogo3.png';
@@ -47,6 +48,7 @@ const navItems: NavItem[] = [
   { to: '/reports', icon: FileText, labelKey: 'reports', roles: ['owner', 'clerk'] },
   { to: '/disease-scanner', icon: Scan, labelKey: 'disease-scanner', roles: ['owner', 'clerk'] },
   { to: '/ai-assistant', icon: MessageSquare, labelKey: 'ai-assistant', roles: ['owner', 'clerk'] },
+  { to: '/price-predictor', icon: TrendingUp, labelKey: 'price-predictor', roles: ['owner', 'clerk', 'worker'] },
 ];
 
 export function Sidebar() {

@@ -12,7 +12,8 @@ import {
     MessageSquare,
     Scan,
     FileText,
-    Menu
+    Menu,
+    TrendingUp
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -30,6 +31,7 @@ const navItems: NavItem[] = [
     { to: '/disease-scanner', icon: Scan, label: 'Disease Scanner' },
     { to: '/ai-assistant', icon: MessageSquare, label: 'AI Assistant' },
     { to: '/worker-reports', icon: FileText, label: 'Reports' },
+    { to: '/price-predictor', icon: TrendingUp, label: 'Price Predictor' },
 ];
 
 export function WorkerLayout() {

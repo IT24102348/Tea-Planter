@@ -23,6 +23,7 @@ import { ReportsPage } from './pages/ReportsPage';
 import { WorkerReportsPage } from './pages/WorkerReportsPage';
 import { TasksPage } from './pages/TasksPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { PricePredictorPage } from './pages/PricePredictorPage';
 
 // Public Marketing Pages
 import { SmartWorkflowPage } from './pages/SmartWorkflowPage';
@@ -126,6 +127,11 @@ function AppRoutes() {
         <Route path="ai-assistant" element={
           <PrivateRoute allowedRoles={['owner', 'clerk', 'worker']}>
             <AIAssistantPage />
+          </PrivateRoute>
+        } />
+        <Route path="price-predictor" element={
+          <PrivateRoute allowedRoles={['owner', 'clerk', 'worker']}>
+            <PricePredictorPage />
           </PrivateRoute>
         } />
         <Route path="worker-financial" element={<WorkerFinancial />} />

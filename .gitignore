@@ -47,3 +47,18 @@ disease-scanner/!best.pt
 disease-scanner/.pytest_cache/
 disease-scanner/.coverage
 disease-scanner/htmlcov/
+
+### FrontEnd (Vite / npm) ###
+FrontEnd/node_modules/
+FrontEnd/dist/
+FrontEnd/.vite/
+
+### Price Predictor (Python) ###
+price-predictor/.venv/
+price-predictor/venv/
+price-predictor/**/__pycache__/
+price-predictor/**/*.py[cod]
+price-predictor/.pytest_cache/
+price-predictor/.coverage
+price-predictor/htmlcov/
+price-predictor/env.price-predictor

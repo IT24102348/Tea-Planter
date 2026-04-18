@@ -27,6 +27,7 @@ const translations: Record<Language, Record<string, string>> = {
     deliveries: 'Deliveries',
     factories: 'Factories',
     reports: 'Reports',
+    'price-predictor': 'Price Predictor',
     settings: 'Settings',
     logout: 'Logout',
 
@@ -60,6 +61,7 @@ const translations: Record<Language, Record<string, string>> = {
     deliveries: 'බෙදාහැරීම්',
     factories: 'කර්මාන්තශාලා',
     reports: 'වාර්තා',
+    'price-predictor': 'මිල පුරෝකථනය',
     settings: 'සැකසීම්',
     logout: 'ඉවත්වන්න',
     welcome: 'සාදරයෙන් පිළිගනිමු',
@@ -91,6 +93,7 @@ const translations: Record<Language, Record<string, string>> = {
     deliveries: 'விநியோகங்கள்',
     factories: 'தொழிற்சாலைகள்',
     reports: 'அறிக்கைகள்',
+    'price-predictor': 'விலை முன்கணிப்பாளர்',
     settings: 'அமைப்புகள்',
     logout: 'வெளியேறு',
     welcome: 'வரவேற்கிறோம்',
