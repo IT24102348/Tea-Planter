@@ -22,25 +22,29 @@ export function PublicFooter() {
     };
 
     const platformLinks = [
-        { name: 'Disease Scanner', path: '/disease-scanner' },
         { name: 'Smart Workflow', path: '/smart-workflow' },
         { name: 'Live Telemetry', path: '/live-telemetry' },
-        { name: 'AI Chatbot', path: '/ai-assistant' },
+        { name: 'Platform Guide', path: '/guide' },
         { name: 'Pricing', path: '/pricing' },
         { name: 'API Access', path: '/api-access' },
     ];
 
     const companyLinks = [
         { name: 'About Us', path: '/about-us' },
+        { name: 'Sri Lankan Tea History', path: '/sri-lankan-tea-history' },
         { name: 'Careers', path: '/careers' },
         { name: 'Estate Partners', path: '/estate-partners' },
         { name: 'Blog', path: '/blog' },
         { name: 'Contact', path: '/contact' },
         { name: 'Security', path: '/security' },
     ];
+    const legalLinks = [
+        { name: 'Terms of Service', path: '/terms-of-service' },
+        { name: 'Privacy Policy', path: '/privacy-policy' },
+    ];
 
     return (
-        <footer className="bg-[#1A1A1A] rounded-[3rem] mx-4 md:mx-8 mb-8 p-12 md:p-20 relative overflow-hidden text-white shadow-2xl border border-white/5">
+        <footer id="landing-footer" className="bg-[#1A1A1A] rounded-[3rem] mx-4 md:mx-8 mb-8 p-12 md:p-20 relative overflow-hidden text-white shadow-2xl border border-white/5">
             {/* Background glows */}
             <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#C8FF4C]/5 rounded-full blur-[100px] pointer-events-none"></div>
 
@@ -129,10 +133,10 @@ export function PublicFooter() {
                             ))}
                         </div>
                         <h4 className="font-bold text-[#C8FF4C] uppercase text-xs tracking-widest mt-4 mb-2">Legal</h4>
-                        {['Terms of Service', 'Privacy Policy'].map((link) => (
-                            <a key={link} href="#" className="text-gray-500 hover:text-white transition-all text-xs font-medium">
-                                {link}
-                            </a>
+                        {legalLinks.map((link) => (
+                            <Link key={link.name} to={link.path} className="text-gray-500 hover:text-white transition-all text-xs font-medium">
+                                {link.name}
+                            </Link>
                         ))}
                     </div>
                 </div>

@@ -37,6 +37,9 @@ import { BlogPage } from './pages/BlogPage';
 import { ContactPage } from './pages/ContactPage';
 import { SecurityPage } from './pages/SecurityPage';
 import { GuidePage } from './pages/GuidePage';
+import { SriLankanTeaHistoryPage } from './pages/SriLankanTeaHistoryPage';
+import { TermsOfServicePage } from './pages/TermsOfServicePage';
+import { PrivacyPolicyPage } from './pages/PrivacyPolicyPage';
 
 interface PrivateRouteProps {
   children: React.ReactNode;
@@ -96,6 +99,9 @@ function AppRoutes() {
       <Route path="/contact" element={<ContactPage />} />
       <Route path="/security" element={<SecurityPage />} />
       <Route path="/guide" element={<GuidePage />} />
+      <Route path="/sri-lankan-tea-history" element={<SriLankanTeaHistoryPage />} />
+      <Route path="/terms-of-service" element={<TermsOfServicePage />} />
+      <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
 
       {/* Worker Pages - With WorkerLayout */}
       <Route
