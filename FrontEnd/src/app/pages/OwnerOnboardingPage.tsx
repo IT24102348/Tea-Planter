@@ -126,11 +126,10 @@ export function OwnerOnboardingPage() {
     };
 
     const fromPayHere = payhereReturnParam === '1' || isPayHerePendingReturn();
-    const forcePlantationAfterReturn =
-      import.meta.env.VITE_PAYHERE_FORCE_PLANTATION_AFTER_RETURN === 'true';
 
     (async () => {
-      if (fromPayHere && forcePlantationAfterReturn) {
+      // Demo flow: after returning from PayHere, go directly to estate form.
+      if (fromPayHere) {
         clearPayHerePendingFlags();
         stripPayHereReturnQuery();
         if (!cancelled) {
