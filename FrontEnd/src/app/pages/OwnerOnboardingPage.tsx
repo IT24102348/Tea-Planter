@@ -58,6 +58,7 @@ export function OwnerOnboardingPage() {
   const [payLoading, setPayLoading] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [retryConfirmLoading, setRetryConfirmLoading] = useState(false);
+  const [checkConfirmLoading, setCheckConfirmLoading] = useState(false);
   const [confirmHint, setConfirmHint] = useState(false);
   const [confirmElapsedSeconds, setConfirmElapsedSeconds] = useState(0);
   const [devSettleMode, setDevSettleMode] = useState(false);
@@ -179,16 +180,14 @@ export function OwnerOnboardingPage() {
 
         if (cancelled) return;
 
-        clearPayHerePendingFlags();
-        stripPayHereReturnQuery();
         if (!cancelled) {
-          setPhase('payment');
-          toast.error(
-            'Could not confirm payment yet. PayHere must reach your API (use ngrok for notify_url). For local dev: set PAYHERE_MANUAL_SETTLE_ENABLED=true on the backend, then pay again or click “Retry confirmation” below.'
+          setConfirmHint(true);
+          toast.message(
+            'Payment approval received. Waiting for final confirmation from server. Please click "Check again" in a few seconds.'
           );
         }
       } catch {
-        if (!cancelled) setPhase('payment');
+        if (!cancelled) setConfirmHint(true);
       }
     })();
 
@@ -254,6 +253,41 @@ export function OwnerOnboardingPage() {
       toast.error(err instanceof Error ? err.message : 'Could not confirm payment');
     } finally {
       setRetryConfirmLoading(false);
+    }
+  };
+
+  const handleCheckConfirmation = async () => {
+    if (!user?.id) return;
+    setCheckConfirmLoading(true);
+    try {
+      const token = await getToken();
+      const st = await api.getOwnerSubscriptionStatus(user.id, token || undefined);
+      const ok =
+        st?.hasOwnerPortalAccess === true || st?.hasOwnerPortalAccess === 'true';
+      if (!ok) {
+        toast.message('Still confirming payment. Please wait a moment and check again.');
+        return;
+      }
+
+      clearPayHerePendingFlags();
+      localStorage.removeItem(PAYHERE_ORDER_ID_KEY);
+      stripPayHereReturnQuery();
+      toast.success('Payment confirmed.');
+      try {
+        const p = await api.getPlantation(user.id, token || undefined);
+        if (p && (p as { id?: number }).id != null) {
+          await user.reload();
+          navigate('/dashboard', { replace: true });
+          return;
+        }
+      } catch {
+        /* new owner — no plantation yet */
+      }
+      setPhase('plantation');
+    } catch {
+      toast.error('Could not check payment confirmation right now.');
+    } finally {
+      setCheckConfirmLoading(false);
     }
   };
 
@@ -410,23 +444,34 @@ export function OwnerOnboardingPage() {
           ) : (
             <p className="text-gray-600 text-center">Loading…</p>
           )}
-          {phase === 'confirming' && confirmHint && devSettleMode ? (
+          {phase === 'confirming' && confirmHint ? (
             <div className="max-w-md text-sm text-gray-600 text-center space-y-2">
-              <p>
-                This step waits until your <strong>backend</strong> marks the subscription paid. PayHere’s servers usually{' '}
-                <strong>cannot reach localhost</strong> for <code className="text-xs bg-gray-100 px-1 rounded">notify_url</code>, so
-                nothing updates until you use a public URL (e.g. ngrok) or{' '}
-                <strong>manual settle</strong> in dev (
-                <code className="text-xs bg-gray-100 px-1 rounded">PAYHERE_MANUAL_SETTLE_ENABLED=true</code> on the API).
-              </p>
+              <p>Payment is approved. We are still waiting for final confirmation from the server.</p>
               <button
                 type="button"
-                disabled={retryConfirmLoading}
-                onClick={handleRetryConfirmation}
-                className="mt-2 px-4 py-2 rounded-lg bg-green-600 text-white font-semibold hover:bg-green-700 disabled:opacity-50"
+                disabled={checkConfirmLoading}
+                onClick={handleCheckConfirmation}
+                className="mt-2 px-4 py-2 rounded-lg bg-gray-900 text-white font-semibold hover:bg-black disabled:opacity-50"
               >
-                {retryConfirmLoading ? 'Working…' : 'Retry confirmation (manual settle)'}
+                {checkConfirmLoading ? 'Checking…' : 'Check again'}
               </button>
+              {devSettleMode ? (
+                <p>
+                  For local dev only: if PayHere cannot reach your{' '}
+                  <code className="text-xs bg-gray-100 px-1 rounded">notify_url</code>, use manual settle (
+                  <code className="text-xs bg-gray-100 px-1 rounded">PAYHERE_MANUAL_SETTLE_ENABLED=true</code>).
+                </p>
+              ) : null}
+              {devSettleMode ? (
+                <button
+                  type="button"
+                  disabled={retryConfirmLoading}
+                  onClick={handleRetryConfirmation}
+                  className="mt-2 px-4 py-2 rounded-lg bg-green-600 text-white font-semibold hover:bg-green-700 disabled:opacity-50"
+                >
+                  {retryConfirmLoading ? 'Working…' : 'Retry confirmation (manual settle)'}
+                </button>
+              ) : null}
             </div>
           ) : null}
         </div>
