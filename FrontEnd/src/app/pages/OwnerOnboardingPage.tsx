@@ -126,8 +126,20 @@ export function OwnerOnboardingPage() {
     };
 
     const fromPayHere = payhereReturnParam === '1' || isPayHerePendingReturn();
+    const forcePlantationAfterReturn =
+      import.meta.env.VITE_PAYHERE_FORCE_PLANTATION_AFTER_RETURN === 'true';
 
     (async () => {
+      if (fromPayHere && forcePlantationAfterReturn) {
+        clearPayHerePendingFlags();
+        stripPayHereReturnQuery();
+        if (!cancelled) {
+          setPhase('plantation');
+          toast.success('Payment step completed. Continue by creating your plantation.');
+        }
+        return;
+      }
+
       if (!fromPayHere) {
         try {
           const token = await getTokenRef.current();
