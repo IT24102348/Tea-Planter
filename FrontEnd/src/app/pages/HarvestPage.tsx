@@ -32,7 +32,12 @@ export function HarvestPage() {
   const [showModal, setShowModal] = useState(false);
   const [editingRecord, setEditingRecord] = useState<HarvestRecord | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const today = new Date().toISOString().split('T')[0];
+  const getLocalDateString = () => {
+    const now = new Date();
+    const tzOffsetMs = now.getTimezoneOffset() * 60000;
+    return new Date(now.getTime() - tzOffsetMs).toISOString().split('T')[0];
+  };
+  const today = getLocalDateString();
   const [formData, setFormData] = useState({
     workerId: '',
     plotId: '',

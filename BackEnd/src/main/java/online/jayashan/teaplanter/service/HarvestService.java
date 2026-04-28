@@ -9,6 +9,7 @@ import online.jayashan.teaplanter.repository.PlotRepository;
 import online.jayashan.teaplanter.repository.WorkerRepository;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
@@ -20,6 +21,15 @@ public class HarvestService {
     private final PlotRepository plotRepository;
     private final online.jayashan.teaplanter.repository.TaskRateRepository taskRateRepository;
     private final online.jayashan.teaplanter.repository.PlantationRepository plantationRepository;
+
+    private void validateHarvestDateIsToday(LocalDate harvestDate) {
+        if (harvestDate == null) {
+            throw new RuntimeException("Harvest date is required");
+        }
+        if (!harvestDate.equals(LocalDate.now())) {
+            throw new RuntimeException("Harvest records can only be added for today's date");
+        }
+    }
 
     public List<Harvest> getAllHarvests(java.time.LocalDate month, Long plantationId) {
         java.time.LocalDate start = month != null ? month.withDayOfMonth(1) : null;
@@ -43,6 +53,8 @@ public class HarvestService {
     }
 
     public Harvest recordHarvest(online.jayashan.teaplanter.dto.HarvestRequestDTO dto) {
+        validateHarvestDateIsToday(dto.getHarvestDate());
+
         Worker worker = workerRepository.findById(dto.getWorkerId())
                 .orElseThrow(() -> new RuntimeException("Worker not found"));
         // Identify plantation first to find the correct plot within it
@@ -129,6 +141,7 @@ public class HarvestService {
         }
 
         if (dto.getHarvestDate() != null) {
+            validateHarvestDateIsToday(dto.getHarvestDate());
             harvest.setHarvestDate(dto.getHarvestDate());
         }
 

@@ -43,6 +43,9 @@ public class OwnerSubscriptionLifecycleService {
     @Value("${PAYHERE_SUBSCRIPTION_DURATION_DAYS:30}")
     private int subscriptionDurationDays;
 
+    @Value("${OWNER_ONBOARDING_DEMO_BYPASS_SUBSCRIPTION:false}")
+    private boolean onboardingDemoBypassSubscription;
+
     public Optional<OwnerSubscription> getLatestSuccessfulSubscription(String clerkId) {
         return ownerSubscriptionRepository.findFirstByClerkIdAndStatusIgnoreCaseOrderByValidUntilDesc(clerkId, "ACTIVE");
     }
@@ -159,6 +162,10 @@ public class OwnerSubscriptionLifecycleService {
     @Scheduled(cron = "${OWNER_SUBSCRIPTION_LAPSE_CRON:0 0 * * * *}")
     @Transactional
     public void scheduledSuspendOwnersPastGrace() {
+        if (onboardingDemoBypassSubscription) {
+            log.info("Subscription lapse job skipped because OWNER_ONBOARDING_DEMO_BYPASS_SUBSCRIPTION=true");
+            return;
+        }
         List<User> owners = userRepository.findAllHavingRole(Role.OWNER);
         int n = 0;
         for (User u : owners) {

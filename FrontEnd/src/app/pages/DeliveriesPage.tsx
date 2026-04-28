@@ -99,12 +99,18 @@ export function DeliveriesPage() {
             return;
         }
 
+        const parsedWeight = parseFloat(formData.weight);
+        if (!Number.isFinite(parsedWeight) || parsedWeight <= 0) {
+            alert('Weight must be greater than 0 kg');
+            return;
+        }
+
         setIsSubmitting(true);
         try {
             const token = await getToken();
             const data = {
                 factory: { id: parseInt(formData.factoryId) },
-                weight: parseFloat(formData.weight),
+                weight: parsedWeight,
                 deliveryDate: formData.deliveryDate,
                 plantationId: plantationId
             };
@@ -410,8 +416,11 @@ export function DeliveriesPage() {
                                     required
                                     type="number"
                                     step="0.01"
+                                    min="0.01"
                                     value={formData.weight}
                                     onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
+                                    onInvalid={(e) => (e.target as HTMLInputElement).setCustomValidity('Weight must be greater than 0 kg.')}
+                                    onInput={(e) => (e.target as HTMLInputElement).setCustomValidity('')}
                                     placeholder="0.00"
                                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none transition-all"
                                 />

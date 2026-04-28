@@ -73,6 +73,11 @@ public class FactoryService {
             delivery.setDeliveryDate(java.time.LocalDate.now());
         }
 
+        double currentWeight = delivery.getWeight() != null ? delivery.getWeight() : 0.0;
+        if (currentWeight <= 0) {
+            throw new RuntimeException("Delivery weight must be greater than 0 kg.");
+        }
+
         if (plantationId != null) {
             plantationRepository.findById(plantationId).ifPresent(delivery::setPlantation);
         }
@@ -101,7 +106,6 @@ public class FactoryService {
                         .mapToDouble(d -> d.getWeight() != null ? d.getWeight() : 0.0)
                         .sum();
 
-        double currentWeight = delivery.getWeight() != null ? delivery.getWeight() : 0.0;
         double tolerance = 0.001;
 
         if (dailyHarvests.isEmpty()) {
