@@ -13,7 +13,7 @@ def train_models():
     df = pd.read_csv("data/ml_ready_data.csv")
     
     # Features and Target
-    X = df[['Year', 'Month_Encoded', 'Estate_Encoded', 'Time_Index']]
+    X = df[['Year', 'Month_Encoded', 'Estate_Encoded', 'Time_Index', 'Sri_Lanka_Dollar Rate(LKR)']]
     y = df['Price']
     
     # Train/Test Split

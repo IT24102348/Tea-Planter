@@ -5,7 +5,7 @@ import os
 def clean_data():
     print("Step 1: Data Selection and Cleaning")
     # Define file paths using relative structure
-    input_file = "data/Tea_Price_dataset_cleaned.csv"
+    input_file = "data/Tea_Price_dataset.csv"
     output_dir = "data"
     output_file = os.path.join(output_dir, "data_cleaned_validated.csv")
     
@@ -34,7 +34,8 @@ def clean_data():
     df['Year'] = df['Year'].astype(int)
     
     # Ensure numerical features are float
-    for col in ['Kendalanda', 'Lassakanda', 'TRI']:
+    numerical_cols = ['Kendalanda', 'Lassakanda', 'TRI', 'Sri_Lanka_Dollar Rate(LKR)']
+    for col in numerical_cols:
         df[col] = pd.to_numeric(df[col], errors='coerce')
         # Fill any NaNs created by coercion with median
         df[col].fillna(df[col].median(), inplace=True)
@@ -43,7 +44,7 @@ def clean_data():
     
     # 5. Detect and handle outliers (using Interquartile Range method)
     # We apply limits based on normal historical tea prices range cap 
-    for col in ['Kendalanda', 'Lassakanda', 'TRI']:
+    for col in numerical_cols:
         Q1 = df[col].quantile(0.25)
         Q3 = df[col].quantile(0.75)
         IQR = Q3 - Q1

@@ -17,7 +17,7 @@ def evaluate_model():
     df = pd.read_csv(data_path)
     
     # 1. Train/Test Split logic (identical to training step)
-    X = df[['Year', 'Month_Encoded', 'Estate_Encoded', 'Time_Index']]
+    X = df[['Year', 'Month_Encoded', 'Estate_Encoded', 'Time_Index', 'Sri_Lanka_Dollar Rate(LKR)']]
     y = df['Price']
     
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
