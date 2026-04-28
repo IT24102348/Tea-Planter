@@ -17,10 +17,10 @@ try:
     month_encoder = joblib.load(os.path.join(MODELS_DIR, "month_encoder.pkl"))
     estate_encoder = joblib.load(os.path.join(MODELS_DIR, "estate_encoder.pkl"))
     scaler = joblib.load(os.path.join(MODELS_DIR, "scaler.pkl"))
-    print("✅ Machine Learning Models loaded successfully!")
+    print("Machine Learning Models loaded successfully!")
 except Exception as e:
     model, month_encoder, estate_encoder, scaler = None, None, None, None
-    print(f"⚠️ Warning: Model components missing. Run scripts 01 through 04 first.\nError: {e}")
+    print(f"Warning: Model components missing. Run scripts 01 through 04 first.\nError: {e}")
 
 # Minimum year present in the original dataset, used for custom Time_Index calculation
 BASE_YEAR = 2014 
@@ -71,6 +71,9 @@ HTML_TEMPLATE = """
                 <option value="Lassakanda">Lassakanda</option>
                 <option value="TRI">TRI</option>
             </select>
+
+            <label for="dollar_rate">Dollar Rate (LKR):</label>
+            <input type="number" id="dollar_rate" name="dollar_rate" required placeholder="e.g., 300.50" step="0.01" value="300.00">
             
             <button type="submit">Predict Tea Price</button>
         </form>
@@ -83,7 +86,8 @@ HTML_TEMPLATE = """
             const data = {
                 "Year": parseInt(document.getElementById('year').value),
                 "Month": document.getElementById('month').value,
-                "Estate": document.getElementById('estate').value
+                "Estate": document.getElementById('estate').value,
+                "Dollar_Rate": parseFloat(document.getElementById('dollar_rate').value)
             };
             
             try {
@@ -124,7 +128,7 @@ def index():
 def predict_price():
     """
     API endpoint connecting to website front-end.
-    Expects JSON: { "Year": 2026, "Month": "January", "Estate": "Kendalanda" }
+    Expects JSON: { "Year": 2026, "Month": "January", "Estate": "Kendalanda", "Dollar_Rate": 300.50 }
     """
     if not model or not scaler or not month_encoder or not estate_encoder:
         return jsonify({"error": "ML Model not fully initialized. Please run training pipeline first."}), 500
@@ -134,6 +138,7 @@ def predict_price():
         year_raw = req_data['Year']
         month_raw = req_data['Month']
         estate_raw = req_data['Estate']
+        dollar_rate = req_data['Dollar_Rate']
         
         # 1. Encode textual data exactly how the model expects
         month_enc = month_encoder.transform([month_raw])[0]
@@ -147,7 +152,8 @@ def predict_price():
             'Year': year_raw,
             'Month_Encoded': month_enc,
             'Estate_Encoded': estate_enc,
-            'Time_Index': time_index
+            'Time_Index': time_index,
+            'Sri_Lanka_Dollar Rate(LKR)': dollar_rate
         }])
         
         # 4. Standardize matching training distributions
@@ -169,5 +175,5 @@ def predict_price():
         return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
-    print("🚀 Starting Flask API deployment server on http://127.0.0.1:5000/")
+    print("Starting Flask API deployment server on http://127.0.0.1:5000/")
     app.run(debug=True, host='127.0.0.1', port=5000)

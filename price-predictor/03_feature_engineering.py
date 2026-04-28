@@ -15,7 +15,7 @@ def feature_engineering():
     
     # Create a unified dataset by melting 'Estate' columns into a single 'Price' target
     print("Reshaping (melting) data for generalized training...")
-    df_melted = pd.melt(df, id_vars=['Year', 'Month'], 
+    df_melted = pd.melt(df, id_vars=['Year', 'Month', 'Sri_Lanka_Dollar Rate(LKR)'], 
                         value_vars=['Kendalanda', 'Lassakanda', 'TRI'],
                         var_name='Estate', value_name='Price')
     
@@ -39,8 +39,8 @@ def feature_engineering():
     print("Applying Standard Scaling to independent features...")
     scaler = StandardScaler()
     
-    # We will use 'Year', 'Month_Encoded', 'Estate_Encoded', and 'Time_Index' to predict 'Price'
-    features = ['Year', 'Month_Encoded', 'Estate_Encoded', 'Time_Index']
+    # We will use 'Year', 'Month_Encoded', 'Estate_Encoded', 'Time_Index' and 'Sri_Lanka_Dollar Rate(LKR)' to predict 'Price'
+    features = ['Year', 'Month_Encoded', 'Estate_Encoded', 'Time_Index', 'Sri_Lanka_Dollar Rate(LKR)']
     
     # Scale features
     df_melted[features] = scaler.fit_transform(df_melted[features])
