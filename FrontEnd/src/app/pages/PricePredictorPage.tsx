@@ -9,6 +9,7 @@ interface PredictionResult {
 
 export function PricePredictorPage() {
   const { t } = useLanguage();
+  const priceApiBaseUrl = import.meta.env.VITE_PRICE_API_URL || 'http://127.0.0.1:5000';
   const [year, setYear] = useState(new Date().getFullYear());
   const [month, setMonth] = useState('January');
   const [estate, setEstate] = useState('Kendalanda');
@@ -32,7 +33,7 @@ export function PricePredictorPage() {
     setResult(null);
 
     try {
-      const response = await fetch('http://127.0.0.1:5000/api/predict', {
+      const response = await fetch(`${priceApiBaseUrl}/api/predict`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

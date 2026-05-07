@@ -23,9 +23,8 @@ except Exception as e:
     print(f"Warning: Model components missing. Run scripts 01 through 04 first.\nError: {e}")
 
 # Minimum year present in the original dataset, used for custom Time_Index calculation
-BASE_YEAR = 2014 
+BASE_YEAR = 2014
 
-# Frontend Interface for the Deployment Test
 HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html>
@@ -48,7 +47,7 @@ HTML_TEMPLATE = """
         <form id="predictForm">
             <label for="year">Year:</label>
             <input type="number" id="year" name="year" required placeholder="e.g., 2026" min="2014" value="2025">
-            
+
             <label for="month">Month:</label>
             <select id="month" name="month" required>
                 <option value="January">January</option>
@@ -64,7 +63,7 @@ HTML_TEMPLATE = """
                 <option value="November">November</option>
                 <option value="December">December</option>
             </select>
-            
+
             <label for="estate">Estate Factory:</label>
             <select id="estate" name="estate" required>
                 <option value="Kendalanda">Kendalanda</option>
@@ -74,7 +73,7 @@ HTML_TEMPLATE = """
 
             <label for="dollar_rate">Dollar Rate (LKR):</label>
             <input type="number" id="dollar_rate" name="dollar_rate" required placeholder="e.g., 300.50" step="0.01" value="300.00">
-            
+
             <button type="submit">Predict Tea Price</button>
         </form>
         <div class="result" id="predictionResult"></div>
@@ -89,18 +88,18 @@ HTML_TEMPLATE = """
                 "Estate": document.getElementById('estate').value,
                 "Dollar_Rate": parseFloat(document.getElementById('dollar_rate').value)
             };
-            
+
             try {
                 const response = await fetch('/api/predict', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data)
                 });
-                
+
                 const result = await response.json();
                 const resultDiv = document.getElementById('predictionResult');
                 resultDiv.style.display = 'block';
-                
+
                 if (result.predicted_price) {
                     resultDiv.style.color = '#2E8B57';
                     resultDiv.style.background = '#e8f5e9';
@@ -119,54 +118,44 @@ HTML_TEMPLATE = """
 </html>
 """
 
+
 @app.route("/", methods=["GET"])
 def index():
-    """ Renders the simple web prediction interface """
     return render_template_string(HTML_TEMPLATE)
+
 
 @app.route("/api/predict", methods=["POST"])
 def predict_price():
-    """
-    API endpoint connecting to website front-end.
-    Expects JSON: { "Year": 2026, "Month": "January", "Estate": "Kendalanda", "Dollar_Rate": 300.50 }
-    """
     if not model or not scaler or not month_encoder or not estate_encoder:
         return jsonify({"error": "ML Model not fully initialized. Please run training pipeline first."}), 500
-        
+
     try:
         req_data = request.json
-        year_raw = req_data['Year']
-        month_raw = req_data['Month']
-        estate_raw = req_data['Estate']
-        dollar_rate = req_data['Dollar_Rate']
-        
-        # 1. Encode textual data exactly how the model expects
+        year_raw = req_data["Year"]
+        month_raw = req_data["Month"]
+        estate_raw = req_data["Estate"]
+        dollar_rate = req_data["Dollar_Rate"]
+
         month_enc = month_encoder.transform([month_raw])[0]
         estate_enc = estate_encoder.transform([estate_raw])[0]
-        
-        # 2. Re-calculate engineered target 'Time_Index'
         time_index = (year_raw - BASE_YEAR) * 12 + month_enc
-        
-        # 3. Create single row DataFrame
+
         input_data = pd.DataFrame([{
-            'Year': year_raw,
-            'Month_Encoded': month_enc,
-            'Estate_Encoded': estate_enc,
-            'Time_Index': time_index,
-            'Sri_Lanka_Dollar Rate(LKR)': dollar_rate
+            "Year": year_raw,
+            "Month_Encoded": month_enc,
+            "Estate_Encoded": estate_enc,
+            "Time_Index": time_index,
+            "Sri_Lanka_Dollar Rate(LKR)": dollar_rate
         }])
-        
-        # 4. Standardize matching training distributions
+
         input_scaled = scaler.transform(input_data)
-        
-        # 5. Predict
         predicted_price = model.predict(input_scaled)[0]
-        
+
         return jsonify({
             "status": "success",
             "predicted_price": float(predicted_price)
         }), 200
-        
+
     except ValueError as val_err:
         return jsonify({"error": f"Invalid textual input for Month or Estate: {val_err}"}), 400
     except KeyError as key_err:
@@ -174,6 +163,8 @@ def predict_price():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+
 if __name__ == "__main__":
-    print("Starting Flask API deployment server on http://127.0.0.1:5000/")
-    app.run(debug=True, host='127.0.0.1', port=5000)
+    print("Starting Flask API deployment server")
+    port = int(os.getenv("PORT", "5000"))
+    app.run(debug=False, host="0.0.0.0", port=port)
