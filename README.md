@@ -1,62 +1,169 @@
-# 🍃 Tea Planter (In Progress)
+# Tea Planter
 
-> A full-stack intelligent estate management platform built for Sri Lankan tea plantation owners, clerks, and workers.
+Intelligent estate management for Sri Lankan tea plantations—digitizing operations for owners, clerks, and workers with dashboards, QR workflows, payroll, inventory, and AI-assisted tools.
 
----
-
-## The Story Behind This
-
-Tea planting is more than an industry in Sri Lanka — it is a way of life, a legacy passed down through generations.
-
-This project was born from a personal mission. My father and I, coming from a family connected to the tea plantation world, saw firsthand how hard estate owners and workers work every single day — managing harvests, tracking workers, handling finances, and dealing with crop diseases — all still done manually or with outdated tools.
-
-We wanted to build something meaningful: a modern, intelligent system designed specifically for Sri Lankan tea planters. A platform that respects the effort behind every kilogram of green leaf, and gives estate managers the tools to work smarter.
-
-This is not just a software project. It is our family's effort to give back to an industry that has shaped Sri Lanka for centuries.
+Website: [teaplanter.online](https://teaplanter.online)
 
 ---
 
-## What It Does
+## Table of contents
 
-**Tea Planter** is a role-based estate management platform covering every aspect of running a tea estate:
-
-- 📊 **Dashboard** — Real-time KPIs: daily harvest, active workers, revenue, and alerts
-- 🗺️ **Plots** — Interactive map with per-block stats and area tracking
-- 👷 **Workforce** — Worker profiles, hiring, role management, and performance tracking
-- 🌿 **Harvest** — Daily harvest logs per worker, block-level tracking, and grade classification
-- 📋 **Attendance** — Daily attendance register with clock-in/out logs
-- 📦 **Inventory** — Fertilizer, chemical, and equipment stock with low-stock alerts
-- 💰 **Financial** — Payroll, wage slips, and revenue vs expense analytics
-- 🚛 **Deliveries** — Factory delivery logs, green leaf weight, and dispatch records
-- 🏭 **Factories** — Factory partner management and pricing history
-- ✅ **Tasks** — Task assignment with priority, deadlines, and status tracking
-- 📄 **Reports** — PDF report generation for harvest, finance, and workforce data
-
-The system supports three user roles — **Owner**, **Clerk**, and **Worker** — each with their own tailored dashboard and access permissions.
+- [About](#about)
+- [Features](#features)
+- [AI capabilities](#ai-capabilities)
+- [Tech stack](#tech-stack)
+- [Repository layout](#repository-layout)
+- [Prerequisites](#prerequisites)
+- [Getting started](#getting-started)
+- [Environment variables](#environment-variables)
+- [Links](#links)
 
 ---
 
-## Built With
+## About
 
-**Frontend:** React 18 · TypeScript · Vite · Tailwind CSS · Recharts · React Leaflet · Clerk Auth
-
-**Backend:** Spring Boot 4 · Java 17 · PostgreSQL · Spring Security + OAuth2
+Tea Planter grew out of life on plantations in Sri Lanka: attendance, harvest logs, payroll, and coordination often still live on paper. This project is a full-stack platform that aims to reduce manual work, improve visibility, and bring modern tooling to one of the country’s core industries—including secure APIs, JWT auth, role-based access, and scheduled automation for subscriptions and reminders.
 
 ---
 
-## 🤖 AI Features — In Progress
+## Features
 
-> These AI capabilities are currently being built as part of the platform.
-
-### Multi-Agent AI Assistant
-A conversational assistant powered by multiple specialized agents — Weather, Inventory, Harvest, and Task agents — working together to answer plantation management questions intelligently.
-
-### Disease & Nutrient Scanner with Recommendations
-Upload a photo of a tea leaf. The system uses computer vision to detect diseases and nutrient deficiencies, returning the disease name, severity, confidence score, treatment steps, and prevention measures.
-
-### Tea Price Predictor
-Forecasts green leaf purchase prices based on market trends, seasonal patterns, and historical factory pricing — so estate owners can plan deliveries at the right time.
+- Role-based access for owners, clerks, and workers
+- Real-time dashboard and operational analytics
+- QR-based attendance, harvest records, and payment verification
+- Worker productivity and harvest contribution tracking
+- Payroll and financial management
+- Inventory with low-stock alerts
+- Delivery and factory management
+- Task assignment and coordination
+- PDF report generation
+- Plantation plots/blocks with map integration
+- Subscription lifecycle and payment workflows (e.g. PayHere)
 
 ---
 
-> 🚧 This project is actively in development.
+## AI capabilities
+
+| Capability | Description |
+| --- | --- |
+| Disease & nutrient scanner | Upload a tea-leaf photo; the system suggests possible diseases or deficiencies with severity, confidence, and treatment or prevention hints. |
+| Tea price predictor | Forecasts green-leaf prices from historical and seasonal patterns to support delivery and cash-flow planning. |
+| Multi-agent assistant (planned) | In-app assistant with coordinated agents for weather, harvest, inventory, and tasks. |
+
+---
+
+## Tech stack
+
+| Layer | Technologies |
+| --- | --- |
+| Frontend | React 18, TypeScript, Vite, Tailwind CSS, Recharts, [Clerk](https://clerk.com/) |
+| Backend | Java 17, Spring Boot 4.x, PostgreSQL, Spring Security, OAuth2 Resource Server (JWT / JWK) |
+
+---
+
+## Repository layout
+
+```
+Tea-Planter/
+├── FrontEnd/     # React (Vite) SPA
+├── BackEnd/      # Spring Boot API
+└── README.md
+```
+
+---
+
+## Prerequisites
+
+- **Node.js** (LTS recommended) for the frontend
+- **Java 17** and **Maven** (or use the included `mvnw` / `mvnw.cmd`)
+- **PostgreSQL** database
+- **[Clerk](https://clerk.com/)** application (JWT issuer / JWK set, backend secret)
+- Optional: separate ML/price HTTP services referenced by the frontend (see `.env`)
+
+---
+
+## Getting started
+
+### 1. Clone the repository
+
+```bash
+git clone <your-repo-url>
+cd Tea-Planter
+```
+
+### 2. Backend
+
+From `BackEnd/`:
+
+**Windows:**
+
+```powershell
+.\mvnw.cmd spring-boot:run
+```
+
+**macOS / Linux:**
+
+```bash
+./mvnw spring-boot:run
+```
+
+Configure environment variables before starting—see [Environment variables](#environment-variables). The app reads optional file-based config via `spring.config.import=optional:file:env.BackEnd`; you can place settings there or export the same variables in your shell.
+
+Default API port: **8080** (override with `PORT`).
+
+### 3. Frontend
+
+From `FrontEnd/`:
+
+```bash
+npm install
+cp .env.example .env    # Unix/macOS; on Windows copy manually
+npm run dev
+```
+
+Run `npm run dev` and use the URL printed in the terminal. Backend defaults for PayHere redirects assume the frontend at `http://localhost:5174`; if you use another port, update `FRONTEND_URL` and related URLs in backend config.
+
+Build for production:
+
+```bash
+npm run build
+```
+
+---
+
+## Environment variables
+
+### Backend (Spring Boot)
+
+| Variable | Purpose |
+| --- | --- |
+| `DATABASE_URL` | JDBC URL for PostgreSQL |
+| `DATABASE_USERNAME` | Database user |
+| `DATABASE_PASSWORD` | Database password |
+| `CLERK_JWK_SET_URI` | Clerk JWKS URL for JWT validation |
+| `CLERK_SECRET_KEY` | Clerk secret for server-side API use |
+| `FRONTEND_URL` | Frontend origin (default `http://localhost:5174`) |
+| `PAYHERE_*` | PayHere merchant, webhook, subscription, and redirect URLs |
+| Mail / SMTP | As required by `application.properties` for outbound mail |
+
+See `BackEnd/src/main/resources/application.properties` for the full list and defaults.
+
+### Frontend (Vite)
+
+The build reads variables from shell environment **or** `FrontEnd/env.FrontEnd` (plain `KEY=value` lines)—see `FrontEnd/vite.config.ts`.
+
+| Variable | Purpose |
+| --- | --- |
+| `VITE_CLERK_PUBLISHABLE_KEY` | Clerk publishable key for the SPA |
+| `VITE_API_BASE_URL` | Base URL for the Spring Boot API |
+| `VITE_ML_API_URL` | Base URL for the disease / nutrient ML API |
+| `VITE_PRICE_API_URL` | Base URL for the price prediction API |
+
+`FrontEnd/.env.example` documents the ML and price URLs; mirror the same keys in `env.FrontEnd` or your environment when running locally.
+
+---
+
+## Links
+
+- **Live demo:** [LinkedIn post](https://lnkd.in/gV3ptj43)
+- **Source / walkthrough:** [LinkedIn repository link](https://lnkd.in/g_5yhDZn)
