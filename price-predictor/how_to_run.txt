@@ -1,2 +1,8 @@
 .\.venv\Scripts\Activate.ps1
 python api_endpoint.py
+
+--- Railway ---
+1. New Project -> Deploy from GitHub repo (this repo).
+2. Service Settings -> Root Directory: price-predictor
+3. Deploy. Set VITE_PRICE_API_URL on the frontend to the generated HTTPS URL (no trailing slash).
+4. Health: GET / (HTML) or POST /api/predict with JSON body.
